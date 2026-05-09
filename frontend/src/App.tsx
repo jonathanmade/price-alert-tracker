@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './api/supabase'
 import AppLayout from './components/layout/AppLayout'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import History from './pages/History'
@@ -30,13 +31,14 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={session ? <Navigate to="/dashboard" /> : <Login />} />
         <Route element={session ? <AppLayout /> : <Navigate to="/login" />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/history"   element={<History />} />
           <Route path="/settings"  element={<Settings />} />
         </Route>
-        <Route path="*" element={<Navigate to={session ? '/dashboard' : '/login'} />} />
+        <Route path="*" element={<Navigate to={session ? '/dashboard' : '/'} />} />
       </Routes>
     </BrowserRouter>
   )

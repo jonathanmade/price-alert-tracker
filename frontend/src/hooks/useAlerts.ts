@@ -1,0 +1,58 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../api/supabase'
+import type { Alert } from '../api/types'
+
+export function useAlerts() {
+  const [alerts, setAlerts] = useState<Alert[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchAlerts = async () => {
+    const { data } = await supabase
+      .from('alerts')
+      .select('*, products(*)')
+      .order('created_at', { ascending: false })
+
+    setAlerts((data as Alert[]) ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchAlerts()
+  }, [])
+
+  const createAlert = async (url: string, name: string, targetPrice: number) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'No autenticado' }
+
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .insert({ user_id: user.id, url, name })
+      .select()
+      .single()
+
+    if (productError) return { error: productError.message }
+
+    const { error: alertError } = await supabase
+      .from('alerts')
+      .insert({ user_id: user.id, product_id: product.id, target_price: targetPrice })
+
+    if (alertError) return { error: alertError.message }
+
+    await fetchAlerts()
+    return { error: null }
+  }
+
+  const deleteAlert = async (alertId: string, productId: string) => {
+    await supabase.from('alerts').delete().eq('id', alertId)
+    await supabase.from('products').delete().eq('id', productId)
+    await fetchAlerts()
+  }
+
+  const togglePause = async (alert: Alert) => {
+    const newStatus = alert.status === 'paused' ? 'active' : 'paused'
+    await supabase.from('alerts').update({ status: newStatus }).eq('id', alert.id)
+    await fetchAlerts()
+  }
+
+  return { alerts, loading, createAlert, deleteAlert, togglePause }
+}
