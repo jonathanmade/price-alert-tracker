@@ -15,6 +15,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # third party
+    "rest_framework",
+    "corsheaders",
     # local
     "apps.users",
     "apps.products",
@@ -23,6 +26,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -87,10 +91,14 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+# CORS — permite llamadas desde el frontend React
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
+
 # Supabase
 SUPABASE_URL = env("SUPABASE_URL")
 SUPABASE_ANON_KEY = env("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_ROLE_KEY = env("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_JWT_SECRET = env("SUPABASE_JWT_SECRET")
 
 # SendGrid
 SENDGRID_API_KEY = env("SENDGRID_API_KEY", default="")

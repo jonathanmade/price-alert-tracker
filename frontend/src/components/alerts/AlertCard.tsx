@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import type { Alert } from '../../api/types'
 
 interface Props {
   alert: Alert
   onDelete: (alertId: string, productId: string) => void
   onTogglePause: (alert: Alert) => void
+  onCheckNow: (alertId: string) => Promise<void>
 }
 
 const statusConfig = {
@@ -12,7 +14,14 @@ const statusConfig = {
   paused:    { dot: 'bg-gray-300',   label: 'Pausada',   text: 'text-gray-500',   bg: 'bg-gray-50' },
 }
 
-export default function AlertCard({ alert, onDelete, onTogglePause }: Props) {
+export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow }: Props) {
+  const [checking, setChecking] = useState(false)
+
+  const handleCheckNow = async () => {
+    setChecking(true)
+    await onCheckNow(alert.id)
+    setChecking(false)
+  }
   const product = alert.products
   const config = statusConfig[alert.status]
 
@@ -78,6 +87,13 @@ export default function AlertCard({ alert, onDelete, onTogglePause }: Props) {
 
         {/* Actions */}
         <div className="flex flex-col gap-2 shrink-0">
+          <button
+            onClick={handleCheckNow}
+            disabled={checking}
+            className="text-xs text-indigo-600 hover:text-indigo-800 px-3 py-1.5 rounded-lg border border-indigo-200 hover:border-indigo-300 transition-colors disabled:opacity-50"
+          >
+            {checking ? '⏳ Buscando...' : '🔄 Comprobar'}
+          </button>
           <button
             onClick={() => onTogglePause(alert)}
             className="text-xs text-gray-400 hover:text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../api/supabase'
+import { triggerPriceCheck } from '../api/djangoApi'
 import type { Alert } from '../api/types'
 
 export function useAlerts() {
@@ -11,14 +12,11 @@ export function useAlerts() {
       .from('alerts')
       .select('*, products(*)')
       .order('created_at', { ascending: false })
-
     setAlerts((data as Alert[]) ?? [])
     setLoading(false)
   }
 
-  useEffect(() => {
-    fetchAlerts()
-  }, [])
+  useEffect(() => { fetchAlerts() }, [])
 
   const createAlert = async (url: string, name: string, targetPrice: number) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -32,13 +30,19 @@ export function useAlerts() {
 
     if (productError) return { error: productError.message }
 
-    const { error: alertError } = await supabase
+    const { data: alert, error: alertError } = await supabase
       .from('alerts')
       .insert({ user_id: user.id, product_id: product.id, target_price: targetPrice })
+      .select()
+      .single()
 
     if (alertError) return { error: alertError.message }
 
     await fetchAlerts()
+
+    // Lanzar comprobación inmediata de precio en el backend
+    triggerPriceCheck(alert.id)
+
     return { error: null }
   }
 
@@ -54,5 +58,11 @@ export function useAlerts() {
     await fetchAlerts()
   }
 
-  return { alerts, loading, createAlert, deleteAlert, togglePause }
+  const checkNow = async (alertId: string) => {
+    await triggerPriceCheck(alertId)
+    // Refrescar después de unos segundos para ver el precio actualizado
+    setTimeout(fetchAlerts, 4000)
+  }
+
+  return { alerts, loading, createAlert, deleteAlert, togglePause, checkNow }
 }

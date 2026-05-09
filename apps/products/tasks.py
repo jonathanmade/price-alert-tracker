@@ -14,14 +14,30 @@ def _get_supabase():
     return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
 
 
+def _deduct_credit(supabase, user_id: str) -> bool:
+    """Descuenta 1 crédito. Devuelve False si no hay créditos."""
+    result = supabase.table("profiles").select("credits").eq("id", user_id).single().execute()
+    credits = result.data.get("credits", 0) if result.data else 0
+
+    if credits <= 0:
+        return False
+
+    supabase.table("profiles").update({"credits": credits - 1}).eq("id", user_id).execute()
+    supabase.table("credit_transactions").insert({
+        "user_id": user_id,
+        "amount": -1,
+        "reason": "price_check",
+    }).execute()
+    return True
+
+
 @shared_task(name="products.check_all_prices")
 def check_all_prices():
     supabase = _get_supabase()
 
-    # Obtener todas las alertas activas con su producto y perfil de usuario
     result = (
         supabase.table("alerts")
-        .select("*, products(*), profiles(email)")
+        .select("id")
         .eq("status", "active")
         .execute()
     )
@@ -38,10 +54,9 @@ def _check_single_alert(alert_id: str):
     supabase = _get_supabase()
     now = datetime.now(timezone.utc).isoformat()
 
-    # Cargar alerta con producto y email del usuario
     result = (
         supabase.table("alerts")
-        .select("*, products(*), profiles(email)")
+        .select("*, products(*), profiles(email, credits)")
         .eq("id", alert_id)
         .single()
         .execute()
@@ -50,16 +65,26 @@ def _check_single_alert(alert_id: str):
     if not alert:
         return
 
+    user_id = alert["user_id"]
     product = alert["products"]
-    url = product["url"]
+    profile = alert["profiles"]
 
-    current_price = scrape_price(url)
-
-    if current_price is None:
-        logger.warning(f"No se pudo obtener precio para {url}")
+    # Verificar y descontar crédito
+    if not _deduct_credit(supabase, user_id):
+        logger.warning(f"Sin créditos para user {user_id}, alerta {alert_id} omitida")
         return
 
-    # Actualizar precio actual y timestamp en el producto
+    current_price = scrape_price(product["url"])
+
+    if current_price is None:
+        logger.warning(f"No se pudo obtener precio para {product['url']}")
+        # Devolver el crédito si el scraping falla
+        supabase.table("profiles").update({
+            "credits": (profile.get("credits", 0))
+        }).eq("id", user_id).execute()
+        return
+
+    # Actualizar precio en el producto
     supabase.table("products").update({
         "current_price": current_price,
         "last_checked_at": now,
@@ -76,19 +101,16 @@ def _check_single_alert(alert_id: str):
 
     # Disparar alerta si el precio es igual o menor al objetivo
     if current_price <= float(alert["target_price"]):
-        email = alert["profiles"]["email"]
-
         send_price_alert(
-            to_email=email,
+            to_email=profile["email"],
             product_name=product["name"],
-            product_url=url,
+            product_url=product["url"],
             current_price=current_price,
             target_price=float(alert["target_price"]),
         )
-
         supabase.table("alerts").update({
             "status": "triggered",
             "triggered_at": now,
         }).eq("id", alert_id).execute()
 
-        logger.info(f"Alerta disparada para {email}: {product['name']} a {current_price}€")
+        logger.info(f"Alerta disparada: {product['name']} a {current_price}€ → {profile['email']}")
