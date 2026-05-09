@@ -1,0 +1,8 @@
+django>=5.2
+psycopg2-binary>=2.9
+celery>=5.3
+redis>=5.0
+beautifulsoup4>=4.12
+requests>=2.31
+sendgrid>=6.11
+django-environ>=0.11
