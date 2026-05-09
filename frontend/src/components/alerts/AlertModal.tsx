@@ -2,14 +2,15 @@ import { useState } from 'react'
 
 interface Props {
   onClose: () => void
-  onCreate: (url: string, name: string, targetPrice: number) => Promise<{ error: string | null }>
+  onCreate: (url: string, name: string, targetPrice: number, checkTime: string) => Promise<{ error: string | null }>
 }
 
 export default function AlertModal({ onClose, onCreate }: Props) {
-  const [url, setUrl] = useState('')
-  const [name, setName] = useState('')
-  const [price, setPrice] = useState('')
-  const [error, setError] = useState('')
+  const [url, setUrl]         = useState('')
+  const [name, setName]       = useState('')
+  const [price, setPrice]     = useState('')
+  const [hour, setHour]       = useState('09')
+  const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +24,8 @@ export default function AlertModal({ onClose, onCreate }: Props) {
     }
 
     setLoading(true)
-    const { error } = await onCreate(url, name || url, targetPrice)
+    const checkTime = `${hour.padStart(2, '0')}:00:00`
+    const { error } = await onCreate(url, name || url, targetPrice, checkTime)
     setLoading(false)
 
     if (error) { setError(error); return }
@@ -86,6 +88,24 @@ export default function AlertModal({ onClose, onCreate }: Props) {
               />
             </div>
             <p className="text-xs text-gray-400 mt-1">Te avisamos cuando el precio baje de esta cantidad.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Hora de comprobación diaria</label>
+            <div className="flex items-center gap-2">
+              <select
+                value={hour}
+                onChange={e => setHour(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {Array.from({ length: 24 }, (_, i) => (
+                  <option key={i} value={String(i).padStart(2, '0')}>
+                    {String(i).padStart(2, '0')}:00
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-400">El sistema comprobará el precio a esta hora cada día.</p>
+            </div>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}

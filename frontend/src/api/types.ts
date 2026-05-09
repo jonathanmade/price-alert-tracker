@@ -20,6 +20,7 @@ export interface Alert {
   product_id: string
   target_price: number
   status: 'active' | 'triggered' | 'paused'
+  check_time: string        // "HH:00:00"
   triggered_at: string | null
   created_at: string
   products?: Product

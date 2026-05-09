@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -9,19 +10,18 @@ from apps.alerts.notifications import send_price_alert
 
 logger = get_task_logger(__name__)
 
+_MADRID = ZoneInfo("Europe/Madrid")
+
 
 def _get_supabase():
     return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
 
 
 def _deduct_credit(supabase, user_id: str) -> bool:
-    """Descuenta 1 crédito. Devuelve False si no hay créditos."""
     result = supabase.table("profiles").select("credits").eq("id", user_id).single().execute()
     credits = result.data.get("credits", 0) if result.data else 0
-
     if credits <= 0:
         return False
-
     supabase.table("profiles").update({"credits": credits - 1}).eq("id", user_id).execute()
     supabase.table("credit_transactions").insert({
         "user_id": user_id,
@@ -35,15 +35,24 @@ def _deduct_credit(supabase, user_id: str) -> bool:
 def check_all_prices():
     supabase = _get_supabase()
 
-    result = (
+    now = datetime.now(_MADRID)
+    hour_str = now.strftime("%H:00:00")
+    next_hour = (now.hour + 1) % 24
+    next_hour_str = f"{next_hour:02d}:00:00"
+
+    query = (
         supabase.table("alerts")
         .select("id")
         .eq("status", "active")
-        .execute()
+        .gte("check_time", hour_str)
     )
+    # midnight wrap: don't add upper bound so we include 23:00:00
+    if next_hour != 0:
+        query = query.lt("check_time", next_hour_str)
 
+    result = query.execute()
     alerts = result.data or []
-    logger.info(f"Revisando precios para {len(alerts)} alertas activas")
+    logger.info(f"Hora {hour_str}: {len(alerts)} alertas programadas")
 
     for alert in alerts:
         _check_single_alert.delay(alert["id"])
@@ -56,7 +65,7 @@ def _check_single_alert(alert_id: str):
 
     result = (
         supabase.table("alerts")
-        .select("*, products(*), profiles(email, credits)")
+        .select("*, products(*)")
         .eq("id", alert_id)
         .single()
         .execute()
@@ -67,9 +76,19 @@ def _check_single_alert(alert_id: str):
 
     user_id = alert["user_id"]
     product = alert["products"]
-    profile = alert["profiles"]
 
-    # Verificar y descontar crédito
+    profile_result = (
+        supabase.table("profiles")
+        .select("email, credits")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    profile = profile_result.data
+    if not profile:
+        logger.warning(f"Perfil no encontrado para user {user_id}")
+        return
+
     if not _deduct_credit(supabase, user_id):
         logger.warning(f"Sin créditos para user {user_id}, alerta {alert_id} omitida")
         return
@@ -78,19 +97,16 @@ def _check_single_alert(alert_id: str):
 
     if current_price is None:
         logger.warning(f"No se pudo obtener precio para {product['url']}")
-        # Devolver el crédito si el scraping falla
         supabase.table("profiles").update({
-            "credits": (profile.get("credits", 0))
+            "credits": profile.get("credits", 0)
         }).eq("id", user_id).execute()
         return
 
-    # Actualizar precio en el producto
     supabase.table("products").update({
         "current_price": current_price,
         "last_checked_at": now,
     }).eq("id", product["id"]).execute()
 
-    # Guardar en historial
     supabase.table("price_history").insert({
         "product_id": product["id"],
         "price": current_price,
@@ -99,7 +115,6 @@ def _check_single_alert(alert_id: str):
 
     logger.info(f"{product['name']}: {current_price}€ (objetivo: {alert['target_price']}€)")
 
-    # Disparar alerta si el precio es igual o menor al objetivo
     if current_price <= float(alert["target_price"]):
         send_price_alert(
             to_email=profile["email"],
@@ -112,5 +127,4 @@ def _check_single_alert(alert_id: str):
             "status": "triggered",
             "triggered_at": now,
         }).eq("id", alert_id).execute()
-
         logger.info(f"Alerta disparada: {product['name']} a {current_price}€ → {profile['email']}")

@@ -17,10 +17,12 @@ export function useCredits() {
 
   useEffect(() => {
     fetchCredits()
-
-    // Refrescar cuando la ventana recupera el foco
     window.addEventListener('focus', fetchCredits)
-    return () => window.removeEventListener('focus', fetchCredits)
+    window.addEventListener('credits-updated', fetchCredits)
+    return () => {
+      window.removeEventListener('focus', fetchCredits)
+      window.removeEventListener('credits-updated', fetchCredits)
+    }
   }, [])
 
   return { credits, refetch: fetchCredits }

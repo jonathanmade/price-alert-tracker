@@ -34,10 +34,10 @@ def check_price_now(request):
     supabase = _get_supabase()
     now = datetime.now(timezone.utc).isoformat()
 
-    # Cargar alerta con producto y perfil
+    # Cargar alerta con producto
     result = (
         supabase.table("alerts")
-        .select("*, products(*), profiles(email, credits)")
+        .select("*, products(*)")
         .eq("id", alert_id)
         .single()
         .execute()
@@ -48,7 +48,18 @@ def check_price_now(request):
 
     user_id = alert["user_id"]
     product = alert["products"]
-    profile = alert["profiles"]
+
+    # Cargar perfil por separado (no hay FK directa entre alerts y profiles)
+    profile_result = (
+        supabase.table("profiles")
+        .select("email, credits")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    profile = profile_result.data
+    if not profile:
+        return JsonResponse({"error": "Perfil no encontrado"}, status=404)
 
     # Verificar créditos
     credits = profile.get("credits", 0)

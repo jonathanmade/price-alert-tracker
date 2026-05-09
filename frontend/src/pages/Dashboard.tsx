@@ -4,7 +4,7 @@ import AlertCard from '../components/alerts/AlertCard'
 import AlertModal from '../components/alerts/AlertModal'
 
 export default function Dashboard() {
-  const { alerts, loading, createAlert, deleteAlert, togglePause, checkNow } = useAlerts()
+  const { alerts, loading, createAlert, deleteAlert, togglePause, checkNow, updateCheckTime } = useAlerts()
   const [showModal, setShowModal] = useState(false)
 
   const active    = alerts.filter(a => a.status === 'active')
@@ -68,6 +68,7 @@ export default function Dashboard() {
                 onDelete={deleteAlert}
                 onTogglePause={togglePause}
                 onCheckNow={checkNow}
+                onUpdateCheckTime={updateCheckTime}
               />
             ))}
           </div>
@@ -88,6 +89,7 @@ export default function Dashboard() {
                 onDelete={deleteAlert}
                 onTogglePause={togglePause}
                 onCheckNow={checkNow}
+                onUpdateCheckTime={updateCheckTime}
               />
             ))}
           </div>
@@ -108,6 +110,7 @@ export default function Dashboard() {
                 onDelete={deleteAlert}
                 onTogglePause={togglePause}
                 onCheckNow={checkNow}
+                onUpdateCheckTime={updateCheckTime}
               />
             ))}
           </div>

@@ -18,7 +18,12 @@ export function useAlerts() {
 
   useEffect(() => { fetchAlerts() }, [])
 
-  const createAlert = async (url: string, name: string, targetPrice: number): Promise<{ error: string | null }> => {
+  const createAlert = async (
+    url: string,
+    name: string,
+    targetPrice: number,
+    checkTime: string,      // "HH:00:00"
+  ): Promise<{ error: string | null }> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'No autenticado' }
 
@@ -32,15 +37,13 @@ export function useAlerts() {
 
     const { data: alert, error: alertError } = await supabase
       .from('alerts')
-      .insert({ user_id: user.id, product_id: product.id, target_price: targetPrice })
+      .insert({ user_id: user.id, product_id: product.id, target_price: targetPrice, check_time: checkTime })
       .select()
       .single()
 
     if (alertError) return { error: alertError.message }
 
     await fetchAlerts()
-
-    // Lanzar comprobación inmediata de precio en el backend
     triggerPriceCheck(alert.id)
 
     return { error: null }
@@ -60,10 +63,17 @@ export function useAlerts() {
 
   const checkNow = async (alertId: string) => {
     const result = await triggerPriceCheck(alertId)
-    // Refrescar alertas inmediatamente con el precio devuelto por el servidor
+    if (result.price !== null) {
+      window.dispatchEvent(new Event('credits-updated'))
+    }
     await fetchAlerts()
     return result
   }
 
-  return { alerts, loading, createAlert, deleteAlert, togglePause, checkNow }
+  const updateCheckTime = async (alertId: string, checkTime: string) => {
+    await supabase.from('alerts').update({ check_time: checkTime }).eq('id', alertId)
+    await fetchAlerts()
+  }
+
+  return { alerts, loading, createAlert, deleteAlert, togglePause, checkNow, updateCheckTime }
 }

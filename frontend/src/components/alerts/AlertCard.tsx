@@ -6,6 +6,7 @@ interface Props {
   onDelete: (alertId: string, productId: string) => void
   onTogglePause: (alert: Alert) => void
   onCheckNow: (alertId: string) => Promise<{ price: number | null; error?: string }>
+  onUpdateCheckTime: (alertId: string, checkTime: string) => Promise<void>
 }
 
 const statusConfig = {
@@ -14,9 +15,15 @@ const statusConfig = {
   paused:    { dot: 'bg-gray-300',   label: 'Pausada',   text: 'text-gray-500',   bg: 'bg-gray-50' },
 }
 
-export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow }: Props) {
-  const [checking, setChecking] = useState(false)
-  const [checkMsg, setCheckMsg] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
+function formatHour(checkTime: string): string {
+  return checkTime ? checkTime.substring(0, 5) : '09:00'
+}
+
+export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, onUpdateCheckTime }: Props) {
+  const [checking, setChecking]       = useState(false)
+  const [checkMsg, setCheckMsg]       = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
+  const [editingTime, setEditingTime] = useState(false)
+  const [selectedHour, setSelectedHour] = useState(alert.check_time?.substring(0, 2) ?? '09')
 
   const handleCheckNow = async () => {
     setChecking(true)
@@ -26,12 +33,18 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow }
     if (result.error) {
       setCheckMsg({ type: 'error', text: result.error })
     } else if (result.price !== null) {
-      setCheckMsg({ type: 'ok', text: `Precio actualizado: ${result.price.toFixed(2)} €` })
+      setCheckMsg({ type: 'ok', text: `Precio actualizado: ${result.price.toFixed(2)} € · −1 crédito` })
     }
-    setTimeout(() => setCheckMsg(null), 5000)
+    setTimeout(() => setCheckMsg(null), 6000)
   }
+
+  const handleSaveTime = async () => {
+    await onUpdateCheckTime(alert.id, `${selectedHour.padStart(2, '0')}:00:00`)
+    setEditingTime(false)
+  }
+
   const product = alert.products
-  const config = statusConfig[alert.status]
+  const config  = statusConfig[alert.status]
 
   const priceDiff = product?.current_price != null
     ? Math.round(((product.current_price - alert.target_price) / alert.target_price) * 100)
@@ -89,6 +102,50 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow }
                   {priceDiff > 0 ? `+${priceDiff}%` : `${priceDiff}%`}
                 </span>
               </div>
+            )}
+          </div>
+
+          {/* Scheduled check time */}
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-xs text-gray-400">Revisión diaria:</span>
+            {editingTime ? (
+              <>
+                <select
+                  value={selectedHour}
+                  onChange={e => setSelectedHour(e.target.value)}
+                  className="text-xs border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <option key={i} value={String(i).padStart(2, '0')}>
+                      {String(i).padStart(2, '0')}:00
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleSaveTime}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                >
+                  Guardar
+                </button>
+                <button
+                  onClick={() => setEditingTime(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600"
+                >
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="text-xs font-medium text-gray-700">
+                  {formatHour(alert.check_time ?? '09:00:00')}
+                </span>
+                <button
+                  onClick={() => setEditingTime(true)}
+                  className="text-xs text-gray-400 hover:text-indigo-500 transition-colors"
+                >
+                  Editar
+                </button>
+              </>
             )}
           </div>
         </div>
