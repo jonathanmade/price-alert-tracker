@@ -1,0 +1,125 @@
+{% extends "staff/base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block nav_products %}text-white bg-indigo-600/20 border border-indigo-500/20{% endblock %}
+{% block page_title %}{{ product.name }}{% endblock %}
+{% block page_subtitle %}{{ product.category.name|default:"Sin categoría" }} · /producto/{{ product.slug }}/{% endblock %}
+
+{% block header_actions %}
+<a href="/staff/products/{{ product.pk }}/edit/"
+   class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+  Editar
+</a>
+<a href="/staff/products/" class="text-xs text-gray-400 hover:text-gray-700 transition-colors">← Volver</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="grid xl:grid-cols-3 gap-6">
+
+  <!-- Info -->
+  <div class="xl:col-span-2 space-y-5">
+
+    {% if product.image_url %}
+    <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <img src="{{ product.image_url }}" alt="{{ product.name }}"
+           class="w-full max-h-64 object-contain rounded-xl" />
+    </div>
+    {% endif %}
+
+    {% if product.description %}
+    <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Descripción</h2>
+      <p class="text-sm text-gray-700 leading-relaxed">{{ product.description }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Marketplace URLs -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-50">
+        <h2 class="text-sm font-semibold text-gray-900">URLs por marketplace</h2>
+      </div>
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left">Marketplace</th>
+            <th class="px-4 py-3 text-left">Precio actual</th>
+            <th class="px-4 py-3 text-left">Afiliado</th>
+            <th class="px-4 py-3 text-left">Estado</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for pu in product.urls.all %}
+          <tr>
+            <td class="px-6 py-3.5 font-medium text-gray-800">
+              <a href="{{ pu.url }}" target="_blank" class="hover:text-indigo-600 transition-colors">
+                {{ pu.marketplace.name }} ↗
+              </a>
+            </td>
+            <td class="px-4 py-3.5 font-bold text-gray-900">
+              {% if pu.current_price %}€{{ pu.current_price }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+            </td>
+            <td class="px-4 py-3.5">
+              {% if pu.affiliate_url %}
+              <a href="{{ pu.affiliate_url }}" target="_blank"
+                 class="text-xs text-indigo-600 hover:underline">Ver link ↗</a>
+              {% else %}
+              <span class="text-xs text-gray-300">Sin configurar</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3.5">
+              {% if pu.active %}
+              <span class="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">Activo</span>
+              {% else %}
+              <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Inactivo</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="px-6 py-8 text-center text-sm text-gray-400">Sin URLs configuradas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sidebar info -->
+  <div class="space-y-5">
+    <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Detalles</h2>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Estado</dt>
+          <dd>{% if product.active %}<span class="text-green-600 font-medium">Activo</span>{% else %}<span class="text-gray-400">Inactivo</span>{% endif %}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Slug</dt>
+          <dd class="font-mono text-xs text-gray-700">{{ product.slug }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Marketplaces</dt>
+          <dd class="font-semibold text-gray-900">{{ product.marketplace_count }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Precio mínimo</dt>
+          <dd class="font-bold text-gray-900">{% if product.lowest_price %}€{{ product.lowest_price }}{% else %}—{% endif %}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Creado</dt>
+          <dd class="text-gray-500">{{ product.created_at|date:"d/m/Y" }}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
+      <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">SEO</p>
+      <p class="text-xs text-indigo-700 leading-relaxed">
+        Página pública disponible en:<br/>
+        <span class="font-mono">/producto/{{ product.slug }}/</span>
+      </p>
+      <p class="text-xs text-indigo-400 mt-2">Módulo 5 — pendiente</p>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

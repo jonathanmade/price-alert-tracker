@@ -1,0 +1,123 @@
+{% extends "staff/base.html" %}
+{% block title %}Productos{% endblock %}
+{% block nav_products %}text-white bg-indigo-600/20 border border-indigo-500/20{% endblock %}
+{% block page_title %}Productos de referencia{% endblock %}
+{% block page_subtitle %}Catálogo gestionado por el equipo{% endblock %}
+
+{% block header_actions %}
+<a href="/staff/products/new/"
+   class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+  + Nuevo producto
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+{% for msg in messages %}
+<div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium
+  {% if msg.tags == 'success' %}bg-green-50 text-green-700{% else %}bg-red-50 text-red-600{% endif %}">
+  {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Filters -->
+<div class="bg-white rounded-2xl border border-gray-100 p-4 mb-5 flex flex-wrap gap-3">
+  <form method="get" class="flex gap-3 flex-wrap w-full">
+    <input type="text" name="q" value="{{ q }}" placeholder="Buscar producto..."
+      class="border border-gray-200 rounded-lg px-3 py-2 text-sm flex-1 min-w-48 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+    <select name="category"
+      class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      <option value="">Todas las categorías</option>
+      {% for cat in categories %}
+      <option value="{{ cat.slug }}" {% if cat.slug == category %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit"
+      class="bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+      Filtrar
+    </button>
+    {% if q or category %}
+    <a href="/staff/products/" class="text-sm text-gray-400 hover:text-gray-700 px-3 py-2">Limpiar</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Table -->
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        <th class="px-6 py-3.5 text-left">Producto</th>
+        <th class="px-4 py-3.5 text-left">Categoría</th>
+        <th class="px-4 py-3.5 text-left">Marketplaces</th>
+        <th class="px-4 py-3.5 text-left">Precio mín.</th>
+        <th class="px-4 py-3.5 text-left">Estado</th>
+        <th class="px-4 py-3.5 text-right">Acciones</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for product in products %}
+      <tr class="hover:bg-gray-50/50 transition-colors">
+        <td class="px-6 py-4">
+          <a href="/staff/products/{{ product.pk }}/" class="font-medium text-gray-900 hover:text-indigo-600 transition-colors">
+            {{ product.name }}
+          </a>
+          <p class="text-xs text-gray-400 mt-0.5">{{ product.slug }}</p>
+        </td>
+        <td class="px-4 py-4 text-gray-500">{{ product.category.name|default:"—" }}</td>
+        <td class="px-4 py-4">
+          <div class="flex gap-1 flex-wrap">
+            {% for pu in product.urls.all %}
+            {% if pu.active %}
+            <span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-medium">
+              {{ pu.marketplace.name }}
+            </span>
+            {% endif %}
+            {% empty %}
+            <span class="text-xs text-gray-300">Sin URLs</span>
+            {% endfor %}
+          </div>
+        </td>
+        <td class="px-4 py-4 font-semibold text-gray-900">
+          {% if product.lowest_price %}€{{ product.lowest_price }}{% else %}—{% endif %}
+        </td>
+        <td class="px-4 py-4">
+          {% if product.active %}
+          <span class="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span> Activo
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Inactivo
+          </span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-4 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <a href="/staff/products/{{ product.pk }}/edit/"
+               class="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors">Editar</a>
+            <form method="post" action="/staff/products/{{ product.pk }}/delete/"
+                  onsubmit="return confirm('¿Eliminar «{{ product.name }}»?')">
+              {% csrf_token %}
+              <button type="submit" class="text-xs text-red-400 hover:text-red-600 font-medium transition-colors">
+                Eliminar
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">
+          No hay productos.
+          <a href="/staff/products/new/" class="text-indigo-600 hover:underline ml-1">Crear el primero →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
