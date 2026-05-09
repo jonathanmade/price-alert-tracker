@@ -48,6 +48,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.staff.context_processors.frontend_url",
             ],
         },
     },
@@ -93,7 +94,10 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # CORS — permite llamadas desde el frontend React
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:5173"])
+
+# URL del frontend React (para links en el panel staff)
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 
 # Supabase
 SUPABASE_URL = env("SUPABASE_URL")
