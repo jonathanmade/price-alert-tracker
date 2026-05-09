@@ -105,10 +105,11 @@ class ProductListView(StaffAccessMixin, View):
 
 class ProductCreateView(StaffAccessMixin, View):
     def get(self, request):
+        mps = [{"mp": mp, "url": "", "affiliate_url": ""} for mp in Marketplace.objects.filter(active=True)]
         return render(request, "staff/products/form.html", {
-            "categories":   Category.objects.all(),
-            "marketplaces": Marketplace.objects.filter(active=True),
-            "product":      None,
+            "categories":        Category.objects.all(),
+            "marketplace_urls":  mps,
+            "product":           None,
         })
 
     def post(self, request):
@@ -130,8 +131,8 @@ class ProductCreateView(StaffAccessMixin, View):
 
         # URLs por marketplace
         for mp in Marketplace.objects.filter(active=True):
-            url     = request.POST.get(f"url_{mp.slug}", "").strip()
-            aff_url = request.POST.get(f"aff_{mp.slug}", "").strip()
+            url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
+            aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
             if url:
                 ProductURL.objects.create(
                     product=product, marketplace=mp,
@@ -144,13 +145,20 @@ class ProductCreateView(StaffAccessMixin, View):
 
 class ProductEditView(StaffAccessMixin, View):
     def get(self, request, pk):
-        product   = get_object_or_404(ReferenceProduct, pk=pk)
-        url_map   = {pu.marketplace_id: pu for pu in product.urls.all()}
+        product = get_object_or_404(ReferenceProduct, pk=pk)
+        pu_map  = {pu.marketplace_id: pu for pu in product.urls.all()}
+        mps = []
+        for mp in Marketplace.objects.filter(active=True):
+            pu = pu_map.get(mp.id)
+            mps.append({
+                "mp":            mp,
+                "url":           pu.url if pu else "",
+                "affiliate_url": pu.affiliate_url if pu else "",
+            })
         return render(request, "staff/products/form.html", {
-            "product":      product,
-            "categories":   Category.objects.all(),
-            "marketplaces": Marketplace.objects.filter(active=True),
-            "url_map":      url_map,
+            "product":           product,
+            "categories":        Category.objects.all(),
+            "marketplace_urls":  mps,
         })
 
     def post(self, request, pk):
@@ -164,17 +172,13 @@ class ProductEditView(StaffAccessMixin, View):
         product.save()
 
         for mp in Marketplace.objects.filter(active=True):
-            url     = request.POST.get(f"url_{mp.slug}", "").strip()
-            aff_url = request.POST.get(f"aff_{mp.slug}", "").strip()
+            url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
+            aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
             pu, _   = ProductURL.objects.get_or_create(product=product, marketplace=mp)
-            if url:
-                pu.url           = url
-                pu.affiliate_url = aff_url
-                pu.active        = True
-                pu.save()
-            else:
-                pu.active = False
-                pu.save()
+            pu.url           = url
+            pu.affiliate_url = aff_url
+            pu.active        = bool(url)
+            pu.save()
 
         messages.success(request, f"Producto «{product.name}» actualizado.")
         return redirect("/staff/products/")

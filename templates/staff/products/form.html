@@ -1,14 +1,9 @@
 {% extends "staff/base.html" %}
-{% if product %}
-{% block title %}Editar producto{% endblock %}
-{% block page_title %}Editar producto{% endblock %}
-{% block page_subtitle %}{{ product.name }}{% endblock %}
-{% else %}
-{% block title %}Nuevo producto{% endblock %}
-{% block page_title %}Nuevo producto{% endblock %}
-{% block page_subtitle %}Añadir al catálogo de referencia{% endblock %}
-{% endif %}
+
+{% block title %}{% if product %}Editar producto{% else %}Nuevo producto{% endif %}{% endblock %}
 {% block nav_products %}text-white bg-indigo-600/20 border border-indigo-500/20{% endblock %}
+{% block page_title %}{% if product %}Editar producto{% else %}Nuevo producto{% endif %}{% endblock %}
+{% block page_subtitle %}{% if product %}{{ product.name }}{% else %}Añadir al catálogo de referencia{% endif %}{% endblock %}
 
 {% block header_actions %}
 <a href="/staff/products/" class="text-xs text-gray-400 hover:text-gray-700 transition-colors">← Volver</a>
@@ -36,7 +31,7 @@
         <input type="text" name="slug" value="{{ product.slug|default:'' }}"
           placeholder="sony-wh-1000xm5"
           class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-        <p class="text-xs text-gray-400 mt-1">Se genera automáticamente del nombre si se deja vacío.</p>
+        <p class="text-xs text-gray-400 mt-1">Se genera automáticamente si se deja vacío.</p>
       </div>
 
       <div>
@@ -60,12 +55,13 @@
       <div class="sm:col-span-2">
         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Descripción</label>
         <textarea name="description" rows="3"
-          placeholder="Descripción breve del producto para SEO..."
+          placeholder="Descripción breve para SEO..."
           class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ product.description|default:'' }}</textarea>
       </div>
 
       <div class="flex items-center gap-2.5">
-        <input type="checkbox" name="active" id="active" {% if product.active or not product %}checked{% endif %}
+        <input type="checkbox" name="active" id="active"
+          {% if not product or product.active %}checked{% endif %}
           class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
         <label for="active" class="text-sm font-medium text-gray-700">Producto activo</label>
       </div>
@@ -78,29 +74,25 @@
     <h2 class="text-sm font-semibold text-gray-900 mb-1">URLs por marketplace</h2>
     <p class="text-xs text-gray-400 mb-5">Deja vacío los marketplaces donde el producto no esté disponible.</p>
 
-    <div class="space-y-5">
-      {% for mp in marketplaces %}
-      {% with pu=url_map|default:None %}
+    <div class="space-y-4">
+      {% for item in marketplace_urls %}
       <div class="border border-gray-100 rounded-xl p-4">
-        <p class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">{{ mp.name }}</p>
+        <p class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3">{{ item.mp.name }}</p>
         <div class="grid sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs text-gray-500 mb-1">URL del producto</label>
-            <input type="url" name="url_{{ mp.slug }}"
-              value="{% if url_map %}{% with pu=url_map|default:'' %}{% for k,v in url_map.items %}{% if k == mp.id %}{{ v.url }}{% endif %}{% endfor %}{% endwith %}{% endif %}"
-              placeholder="{{ mp.base_url }}/..."
+            <input type="url" name="mp_url_{{ item.mp.id }}" value="{{ item.url }}"
+              placeholder="{{ item.mp.base_url }}/..."
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">URL de afiliado</label>
-            <input type="url" name="aff_{{ mp.slug }}"
-              value="{% if url_map %}{% for k,v in url_map.items %}{% if k == mp.id %}{{ v.affiliate_url }}{% endif %}{% endfor %}{% endif %}"
+            <input type="url" name="mp_aff_{{ item.mp.id }}" value="{{ item.affiliate_url }}"
               placeholder="Con tag de afiliado..."
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
           </div>
         </div>
       </div>
-      {% endwith %}
       {% endfor %}
     </div>
   </div>
@@ -111,8 +103,7 @@
       class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
       {% if product %}Guardar cambios{% else %}Crear producto{% endif %}
     </button>
-    <a href="/staff/products/"
-      class="text-sm text-gray-400 hover:text-gray-700 transition-colors">Cancelar</a>
+    <a href="/staff/products/" class="text-sm text-gray-400 hover:text-gray-700 transition-colors">Cancelar</a>
   </div>
 
 </form>
