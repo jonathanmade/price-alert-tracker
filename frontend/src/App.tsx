@@ -7,7 +7,10 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import History from './pages/History'
-import Settings from './pages/Settings'
+import Settings, { SettingsRedirect } from './pages/Settings'
+import Account from './pages/settings/Account'
+import Profile from './pages/settings/Profile'
+import Billing from './pages/settings/Billing'
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -36,7 +39,12 @@ export default function App() {
         <Route element={session ? <AppLayout /> : <Navigate to="/login" />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/history"   element={<History />} />
-          <Route path="/settings"  element={<Settings />} />
+          <Route path="/settings"  element={<Settings />}>
+            <Route index element={<SettingsRedirect />} />
+            <Route path="account" element={<Account />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="billing" element={<Billing />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to={session ? '/dashboard' : '/'} />} />
       </Routes>

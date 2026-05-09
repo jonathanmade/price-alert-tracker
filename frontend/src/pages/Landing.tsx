@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../api/supabase'
 
 const stores = ['Amazon', 'MediaMarkt', 'El Corte Inglés', 'Zara', 'ASOS', 'PcComponentes']
 
@@ -24,6 +25,15 @@ const steps = [
 export default function Landing() {
   const [url, setUrl] = useState('')
   const [price, setPrice] = useState('')
+  const [loggedIn, setLoggedIn] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setLoggedIn(!!data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      setLoggedIn(!!session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   return (
     <div className="min-h-screen bg-white">
@@ -33,18 +43,29 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <span className="text-indigo-600 font-bold text-xl tracking-tight">PriceAlert</span>
           <div className="flex items-center gap-3">
-            <Link
-              to="/login"
-              className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
-            >
-              Iniciar sesión
-            </Link>
-            <Link
-              to="/login"
-              className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
-            >
-              Empezar gratis
-            </Link>
+            {loggedIn ? (
+              <Link
+                to="/dashboard"
+                className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                Ir al dashboard →
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                >
+                  Iniciar sesión
+                </Link>
+                <Link
+                  to="/login"
+                  className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors"
+                >
+                  Empezar gratis
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -84,10 +105,10 @@ export default function Landing() {
               />
             </div>
             <Link
-              to="/login"
+              to={loggedIn ? '/dashboard' : '/login'}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap"
             >
-              Crear alerta →
+              {loggedIn ? 'Ir al dashboard →' : 'Crear alerta →'}
             </Link>
           </div>
           <p className="text-xs text-gray-400 mt-3">Gratis para siempre hasta 5 alertas activas.</p>
@@ -133,10 +154,10 @@ export default function Landing() {
           Empieza gratis. Sin tarjeta de crédito.
         </p>
         <Link
-          to="/login"
+          to={loggedIn ? '/dashboard' : '/login'}
           className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-8 py-3 rounded-xl text-sm transition-colors"
         >
-          Crear mi cuenta gratis →
+          {loggedIn ? 'Ir al dashboard →' : 'Crear mi cuenta gratis →'}
         </Link>
       </section>
 
