@@ -18,7 +18,7 @@ export function useAlerts() {
 
   useEffect(() => { fetchAlerts() }, [])
 
-  const createAlert = async (url: string, name: string, targetPrice: number) => {
+  const createAlert = async (url: string, name: string, targetPrice: number): Promise<{ error: string | null }> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'No autenticado' }
 
@@ -59,9 +59,10 @@ export function useAlerts() {
   }
 
   const checkNow = async (alertId: string) => {
-    await triggerPriceCheck(alertId)
-    // Refrescar después de unos segundos para ver el precio actualizado
-    setTimeout(fetchAlerts, 4000)
+    const result = await triggerPriceCheck(alertId)
+    // Refrescar alertas inmediatamente con el precio devuelto por el servidor
+    await fetchAlerts()
+    return result
   }
 
   return { alerts, loading, createAlert, deleteAlert, togglePause, checkNow }

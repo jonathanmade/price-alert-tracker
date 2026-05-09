@@ -5,7 +5,7 @@ interface Props {
   alert: Alert
   onDelete: (alertId: string, productId: string) => void
   onTogglePause: (alert: Alert) => void
-  onCheckNow: (alertId: string) => Promise<void>
+  onCheckNow: (alertId: string) => Promise<{ price: number | null; error?: string }>
 }
 
 const statusConfig = {
@@ -16,11 +16,19 @@ const statusConfig = {
 
 export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow }: Props) {
   const [checking, setChecking] = useState(false)
+  const [checkMsg, setCheckMsg] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
 
   const handleCheckNow = async () => {
     setChecking(true)
-    await onCheckNow(alert.id)
+    setCheckMsg(null)
+    const result = await onCheckNow(alert.id)
     setChecking(false)
+    if (result.error) {
+      setCheckMsg({ type: 'error', text: result.error })
+    } else if (result.price !== null) {
+      setCheckMsg({ type: 'ok', text: `Precio actualizado: ${result.price.toFixed(2)} €` })
+    }
+    setTimeout(() => setCheckMsg(null), 5000)
   }
   const product = alert.products
   const config = statusConfig[alert.status]
@@ -109,6 +117,17 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow }
         </div>
 
       </div>
+
+      {/* Resultado de la comprobación manual */}
+      {checkMsg && (
+        <div className={`mt-4 rounded-xl px-4 py-2.5 text-xs font-medium ${
+          checkMsg.type === 'ok'
+            ? 'bg-green-50 text-green-700'
+            : 'bg-red-50 text-red-600'
+        }`}>
+          {checkMsg.type === 'ok' ? '✓ ' : '✕ '}{checkMsg.text}
+        </div>
+      )}
 
       {/* Triggered message */}
       {alert.status === 'triggered' && (

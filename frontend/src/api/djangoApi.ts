@@ -10,15 +10,24 @@ async function authHeaders() {
   }
 }
 
-export async function triggerPriceCheck(alertId: string): Promise<boolean> {
+interface CheckResult {
+  price: number | null
+  triggered: boolean
+  credits_remaining: number
+  error?: string
+}
+
+export async function triggerPriceCheck(alertId: string): Promise<CheckResult> {
   try {
     const res = await fetch(`${BASE_URL}/api/check-price/`, {
       method: 'POST',
       headers: await authHeaders(),
       body: JSON.stringify({ alert_id: alertId }),
     })
-    return res.ok
+    const data = await res.json()
+    if (!res.ok) return { price: null, triggered: false, credits_remaining: 0, error: data.error }
+    return data
   } catch {
-    return false
+    return { price: null, triggered: false, credits_remaining: 0, error: 'Error de conexión con el servidor' }
   }
 }
