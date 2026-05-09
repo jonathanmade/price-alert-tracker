@@ -53,10 +53,22 @@ class DashboardView(StaffAccessMixin, View):
             .data or []
         )
 
+        modules = [
+            {"num": "1", "label": "Roles y permisos",    "done": True},
+            {"num": "2", "label": "Panel admin",          "done": False},
+            {"num": "3", "label": "Afiliación",           "done": False},
+            {"num": "4", "label": "Comparador",           "done": False},
+            {"num": "5", "label": "SEO programático",     "done": False},
+            {"num": "6", "label": "Historial y gráficas", "done": True},
+            {"num": "7", "label": "Cupones",              "done": False},
+            {"num": "8", "label": "Telegram",             "done": False},
+        ]
+
         return render(request, "staff/dashboard.html", {
             "products_count":   products_count,
             "active_alerts":    active_alerts,
             "triggered_alerts": triggered_alerts,
             "total_users":      total_users,
             "recent_checks":    recent_checks,
+            "modules":          modules,
         })
