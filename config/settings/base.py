@@ -78,6 +78,14 @@ CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+CELERY_TIMEZONE = "Europe/Madrid"
+
+CELERY_BEAT_SCHEDULE = {
+    "check-all-prices-hourly": {
+        "task": "products.check_all_prices",
+        "schedule": 3600,  # cada hora
+    },
+}
 
 # Supabase
 SUPABASE_URL = env("SUPABASE_URL")
