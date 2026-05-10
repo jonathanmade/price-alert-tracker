@@ -190,6 +190,56 @@
         {% endif %}
       </div>
 
+      <!-- Coupons for this product's marketplaces -->
+      {% if coupons %}
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-50">
+          <h2 class="text-sm font-semibold text-gray-900">Cupones disponibles</h2>
+          <p class="text-xs text-gray-400 mt-0.5">Códigos de descuento para las tiendas que venden este producto</p>
+        </div>
+        <div class="divide-y divide-gray-50">
+          {% for coupon in coupons %}
+          <div class="px-6 py-4 flex items-center justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+                <span class="text-xs font-semibold text-gray-600">{{ coupon.marketplace.name }}</span>
+                {% if coupon.verified %}
+                <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded-full">✓ Verificado</span>
+                {% endif %}
+              </div>
+              <p class="text-sm font-medium text-gray-800">{{ coupon.discount_label }}</p>
+              <p class="text-xs text-gray-400 mt-0.5">{{ coupon.description }}</p>
+            </div>
+            <div class="shrink-0 flex flex-col items-end gap-2">
+              <span class="font-mono font-bold text-sm text-indigo-700 bg-indigo-50 border border-dashed border-indigo-200 px-3 py-1.5 rounded-lg tracking-widest">
+                {{ coupon.code }}
+              </span>
+              <button onclick="copyCode(this, '{{ coupon.code }}')"
+                      class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-1.5 rounded-lg transition-colors">
+                Copiar
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <script>
+      function copyCode(btn, code) {
+        navigator.clipboard.writeText(code).then(function() {
+          var orig = btn.textContent;
+          btn.textContent = '¡Copiado!';
+          btn.classList.add('bg-green-600');
+          btn.classList.remove('bg-indigo-600');
+          setTimeout(function() {
+            btn.textContent = orig;
+            btn.classList.remove('bg-green-600');
+            btn.classList.add('bg-indigo-600');
+          }, 2500);
+        });
+      }
+      </script>
+      {% endif %}
+
       <!-- Alert CTA -->
       <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

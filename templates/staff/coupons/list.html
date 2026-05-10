@@ -1,0 +1,130 @@
+{% extends "staff/base.html" %}
+{% block title %}Cupones{% endblock %}
+{% block nav_coupons %}text-white bg-indigo-600/20 border border-indigo-500/20{% endblock %}
+{% block page_title %}Cupones{% endblock %}
+{% block page_subtitle %}Códigos promocionales por marketplace{% endblock %}
+
+{% block header_actions %}
+<a href="/staff/coupons/new/"
+   class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+  + Nuevo cupón
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Messages -->
+{% if messages %}
+{% for msg in messages %}
+<div class="mb-5 px-4 py-3 rounded-xl text-sm font-medium
+  {% if msg.tags == 'success' %}bg-green-50 text-green-700{% else %}bg-red-50 text-red-700{% endif %}">
+  {{ msg }}
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Filters -->
+<div class="flex items-center gap-3 mb-6">
+  <a href="/staff/coupons/"
+     class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors
+            {% if not mp_slug %}bg-indigo-600 text-white border-indigo-600{% else %}border-gray-200 text-gray-600 hover:border-indigo-300{% endif %}">
+    Todos
+  </a>
+  {% for mp in marketplaces %}
+  <a href="/staff/coupons/?mp={{ mp.slug }}"
+     class="text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors
+            {% if mp_slug == mp.slug %}bg-indigo-600 text-white border-indigo-600{% else %}border-gray-200 text-gray-600 hover:border-indigo-300{% endif %}">
+    {{ mp.name }}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Table -->
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        <th class="px-6 py-3 text-left">Marketplace</th>
+        <th class="px-4 py-3 text-left">Código</th>
+        <th class="px-4 py-3 text-left">Descuento</th>
+        <th class="px-4 py-3 text-left">Descripción</th>
+        <th class="px-4 py-3 text-left">Caduca</th>
+        <th class="px-4 py-3 text-center">Estado</th>
+        <th class="px-4 py-3 text-right">Acciones</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for coupon in coupons %}
+      <tr class="{% if coupon.is_expired %}opacity-50{% endif %}">
+
+        <td class="px-6 py-3.5 font-medium text-gray-800">{{ coupon.marketplace.name }}</td>
+
+        <td class="px-4 py-3.5">
+          <span class="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg tracking-widest">
+            {{ coupon.code }}
+          </span>
+        </td>
+
+        <td class="px-4 py-3.5 text-gray-700">{{ coupon.discount_label }}</td>
+
+        <td class="px-4 py-3.5 text-gray-500 max-w-xs truncate">{{ coupon.description }}</td>
+
+        <td class="px-4 py-3.5 text-gray-500 text-xs">
+          {% if coupon.valid_until %}
+            {% if coupon.is_expired %}
+            <span class="text-red-500 font-medium">Caducado {{ coupon.valid_until|date:"d/m/Y" }}</span>
+            {% else %}
+            {{ coupon.valid_until|date:"d/m/Y" }}
+            {% endif %}
+          {% else %}
+          <span class="text-gray-300">Sin fecha</span>
+          {% endif %}
+        </td>
+
+        <td class="px-4 py-3.5 text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            {% if coupon.active %}
+            <span class="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">Activo</span>
+            {% else %}
+            <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Inactivo</span>
+            {% endif %}
+            {% if coupon.verified %}
+            <span class="text-xs font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">✓ Verificado</span>
+            {% endif %}
+          </div>
+        </td>
+
+        <td class="px-4 py-3.5 text-right">
+          <div class="flex items-center justify-end gap-3">
+            <a href="/staff/coupons/{{ coupon.pk }}/edit/"
+               class="text-xs text-gray-400 hover:text-indigo-600 transition-colors">Editar</a>
+            <form method="post" action="/staff/coupons/{{ coupon.pk }}/delete/"
+                  onsubmit="return confirm('¿Eliminar cupón {{ coupon.code }}?')">
+              {% csrf_token %}
+              <button type="submit" class="text-xs text-red-400 hover:text-red-600 transition-colors">Eliminar</button>
+            </form>
+          </div>
+        </td>
+
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-400">
+          No hay cupones todavía.
+          <a href="/staff/coupons/new/" class="text-indigo-600 hover:underline ml-1">Añadir el primero →</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Stats -->
+{% if coupons %}
+<p class="text-xs text-gray-400 mt-4">
+  {{ coupons|length }} cupón{% if coupons|length != 1 %}es{% endif %} ·
+  {% with active_count=coupons|length %}{{ active_count }}{% endwith %} en total
+</p>
+{% endif %}
+
+{% endblock %}

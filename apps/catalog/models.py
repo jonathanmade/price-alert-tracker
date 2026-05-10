@@ -96,6 +96,51 @@ class ProductURL(models.Model):
         return self.clicks.count()
 
 
+class Coupon(models.Model):
+    DISCOUNT_TYPES = [
+        ("percent",      "% descuento"),
+        ("fixed",        "€ fijo"),
+        ("free_shipping","Envío gratis"),
+    ]
+
+    marketplace    = models.ForeignKey(Marketplace, on_delete=models.CASCADE, related_name="coupons")
+    code           = models.CharField(max_length=100)
+    description    = models.CharField(max_length=300)
+    discount_type  = models.CharField(max_length=20, choices=DISCOUNT_TYPES, default="percent")
+    discount_value = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    min_order      = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    valid_until    = models.DateField(null=True, blank=True)
+    url            = models.URLField(blank=True)
+    active         = models.BooleanField(default=True)
+    verified       = models.BooleanField(default=False)
+    created_at     = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "cupón"
+        verbose_name_plural = "cupones"
+
+    def __str__(self):
+        return f"{self.marketplace.name} — {self.code}"
+
+    @property
+    def is_expired(self) -> bool:
+        if not self.valid_until:
+            return False
+        from django.utils import timezone
+        return self.valid_until < timezone.now().date()
+
+    @property
+    def discount_label(self) -> str:
+        if self.discount_type == "free_shipping":
+            return "Envío gratis"
+        if self.discount_type == "percent" and self.discount_value:
+            return f"{self.discount_value:g}% descuento"
+        if self.discount_type == "fixed" and self.discount_value:
+            return f"€{self.discount_value:g} de descuento"
+        return self.get_discount_type_display()
+
+
 class AffiliateClick(models.Model):
     product_url = models.ForeignKey(ProductURL, on_delete=models.CASCADE, related_name="clicks")
     ip_hash     = models.CharField(max_length=64, blank=True)   # SHA-256 — sin datos personales

@@ -8,6 +8,7 @@ from apps.catalog.views import (
     AffiliateRedirectView,
     CatalogView,
     CategoryView,
+    CouponsPublicView,
     ProductPublicView,
     robots_txt,
 )
@@ -29,6 +30,7 @@ urlpatterns = [
          AffiliateRedirectView.as_view(), name="affiliate_redirect"),
 
     # Comparador público
+    path("cupones/",       CouponsPublicView.as_view(), name="coupons"),
     path("comparar/",                  CatalogView.as_view(),   name="catalog"),
     path("comparar/<slug:category_slug>/", CategoryView.as_view(), name="category"),
     path("producto/<slug:slug>/",      ProductPublicView.as_view(), name="product_detail"),

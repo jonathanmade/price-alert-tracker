@@ -1,0 +1,127 @@
+{% extends "catalog/base.html" %}
+
+{% block title %}Cupones y códigos descuento{% endblock %}
+{% block meta_description %}Cupones y códigos descuento verificados para Amazon, PCComponentes, MediaMarkt y más. Ahorra en tu próxima compra.{% endblock %}
+
+{% block canonical %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}/cupones/{% if mp_slug %}?mp={{ mp_slug }}{% endif %}">
+{% endblock %}
+
+{% block og_title %}Cupones y códigos descuento · PriceAlert{% endblock %}
+{% block og_description %}Cupones verificados para Amazon, PCComponentes, MediaMarkt y más tiendas. Gratis, sin registro.{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="bg-white border-b border-gray-100">
+  <div class="max-w-5xl mx-auto px-6 py-12">
+    <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-2">Códigos descuento</p>
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Cupones y descuentos</h1>
+    <p class="text-gray-500 text-sm">Códigos promocionales verificados para las principales tiendas online. Cópialos y úsalos en tu próxima compra.</p>
+  </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-6 py-8">
+
+  <!-- Marketplace filter -->
+  {% if marketplaces %}
+  <div class="flex flex-wrap gap-2 mb-8">
+    <a href="/cupones/"
+       class="px-4 py-1.5 rounded-full text-sm font-medium border transition-colors
+              {% if not mp_slug %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600{% endif %}">
+      Todas las tiendas
+    </a>
+    {% for mp in marketplaces %}
+    <a href="/cupones/?mp={{ mp.slug }}"
+       class="px-4 py-1.5 rounded-full text-sm font-medium border transition-colors
+              {% if mp_slug == mp.slug %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600{% endif %}">
+      {{ mp.name }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Coupon grid -->
+  {% if coupons %}
+  <div class="space-y-4">
+    {% for coupon in coupons %}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+
+      <!-- Left: info -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span class="text-xs font-semibold text-gray-500">{{ coupon.marketplace.name }}</span>
+          {% if coupon.verified %}
+          <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">✓ Verificado</span>
+          {% endif %}
+          {% if coupon.valid_until %}
+          <span class="text-[10px] text-gray-400">Válido hasta {{ coupon.valid_until|date:"d/m/Y" }}</span>
+          {% endif %}
+        </div>
+
+        <p class="text-lg font-bold text-gray-900 mb-0.5">{{ coupon.discount_label }}</p>
+        <p class="text-sm text-gray-500">{{ coupon.description }}</p>
+
+        {% if coupon.min_order %}
+        <p class="text-xs text-gray-400 mt-1.5">Pedido mínimo: €{{ coupon.min_order|floatformat:2 }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Right: code + copy button -->
+      <div class="shrink-0 flex flex-col items-center gap-2 w-full sm:w-auto">
+        <div class="relative w-full sm:w-auto">
+          <span id="code-{{ coupon.pk }}"
+                class="block font-mono font-bold text-lg tracking-widest text-indigo-700 bg-indigo-50 border-2 border-dashed border-indigo-200 px-6 py-3 rounded-xl text-center select-all">
+            {{ coupon.code }}
+          </span>
+        </div>
+
+        <button
+          onclick="copyCode(this, '{{ coupon.code }}')"
+          class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5 py-2 rounded-lg transition-colors">
+          Copiar código
+        </button>
+
+        {% if coupon.url %}
+        <a href="{{ coupon.url }}" target="_blank" rel="noopener noreferrer sponsored"
+           class="text-xs text-indigo-500 hover:text-indigo-700 transition-colors">
+          Ir a la oferta →
+        </a>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="text-center py-20">
+    <p class="text-gray-400 text-sm">
+      {% if mp_slug %}No hay cupones activos para este marketplace.{% else %}No hay cupones activos por el momento.{% endif %}
+    </p>
+    {% if mp_slug %}
+    <a href="/cupones/" class="text-indigo-600 text-sm hover:underline mt-2 inline-block">Ver todos los cupones →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Copy code JS -->
+<script>
+function copyCode(btn, code) {
+  navigator.clipboard.writeText(code).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = '¡Copiado!';
+    btn.classList.add('bg-green-600');
+    btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+    setTimeout(function() {
+      btn.textContent = orig;
+      btn.classList.remove('bg-green-600');
+      btn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+    }, 2500);
+  });
+}
+</script>
+
+{% endblock %}

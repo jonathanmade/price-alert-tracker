@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views import View
 
-from .models import AffiliateClick, Category, ProductURL, ReferenceProduct
+from .models import AffiliateClick, Category, Coupon, Marketplace, ProductURL, ReferenceProduct
 
 
 # ── Affiliate redirect ────────────────────────────────────────────────────────
@@ -98,16 +98,57 @@ class ProductPublicView(View):
             active=True,
         )
 
+        from django.utils import timezone
         urls = sorted(
             [u for u in product.urls.all() if u.active],
             key=lambda u: (u.current_price is None, u.current_price or 0),
         )
         lowest_price = urls[0].current_price if urls and urls[0].current_price else None
 
+        # Cupones activos para los marketplaces de este producto
+        mp_ids = [u.marketplace_id for u in urls]
+        coupons = (
+            Coupon.objects
+            .filter(active=True, marketplace_id__in=mp_ids)
+            .exclude(valid_until__lt=timezone.now().date())
+            .select_related("marketplace")
+            .order_by("-verified", "-created_at")
+        )
+
         return render(request, "catalog/product_detail.html", {
             "product":      product,
             "urls":         urls,
             "lowest_price": lowest_price,
+            "coupons":      coupons,
+        })
+
+
+# ── Coupons public page ───────────────────────────────────────────────────────
+
+class CouponsPublicView(View):
+    """Página pública del buscador de cupones."""
+    def get(self, request):
+        from django.utils import timezone
+        mp_slug = request.GET.get("mp", "").strip()
+
+        coupons = (
+            Coupon.objects
+            .filter(active=True)
+            .select_related("marketplace")
+            .exclude(valid_until__lt=timezone.now().date())
+            .order_by("-verified", "-created_at")
+        )
+        if mp_slug:
+            coupons = coupons.filter(marketplace__slug=mp_slug)
+
+        marketplaces = Marketplace.objects.filter(
+            active=True, coupons__active=True
+        ).distinct()
+
+        return render(request, "catalog/coupons.html", {
+            "coupons":      coupons,
+            "marketplaces": marketplaces,
+            "mp_slug":      mp_slug,
         })
 
 

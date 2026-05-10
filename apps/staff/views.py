@@ -7,7 +7,7 @@ from django.utils.text import slugify
 from supabase import create_client
 
 from .mixins import StaffAccessMixin, AdminOnlyMixin, is_staff_user
-from apps.catalog.models import ReferenceProduct, ProductURL, Marketplace, Category, AffiliateClick
+from apps.catalog.models import ReferenceProduct, ProductURL, Marketplace, Category, AffiliateClick, Coupon
 
 
 def _supabase():
@@ -261,3 +261,91 @@ class AnalyticsView(StaffAccessMixin, View):
             "clicks_7d":     clicks_7d,
             "top_clicked":   top_clicked,
         })
+
+
+# ── Coupons CRUD ──────────────────────────────────────────────────────────────
+
+class CouponListView(StaffAccessMixin, View):
+    def get(self, request):
+        mp_slug = request.GET.get("mp", "").strip()
+        coupons = Coupon.objects.select_related("marketplace").all()
+        if mp_slug:
+            coupons = coupons.filter(marketplace__slug=mp_slug)
+        return render(request, "staff/coupons/list.html", {
+            "coupons":      coupons,
+            "marketplaces": Marketplace.objects.filter(active=True),
+            "mp_slug":      mp_slug,
+        })
+
+
+class CouponCreateView(StaffAccessMixin, View):
+    def get(self, request):
+        return render(request, "staff/coupons/form.html", {
+            "coupon":       None,
+            "marketplaces": Marketplace.objects.filter(active=True),
+        })
+
+    def post(self, request):
+        mp_id          = request.POST.get("marketplace") or None
+        code           = request.POST.get("code", "").strip().upper()
+        description    = request.POST.get("description", "").strip()
+        discount_type  = request.POST.get("discount_type", "percent")
+        discount_value = request.POST.get("discount_value", "").strip() or None
+        min_order      = request.POST.get("min_order", "").strip() or None
+        valid_until    = request.POST.get("valid_until", "").strip() or None
+        url            = request.POST.get("url", "").strip()
+        active         = request.POST.get("active") == "on"
+        verified       = request.POST.get("verified") == "on"
+
+        if not (mp_id and code and description):
+            messages.error(request, "Marketplace, código y descripción son obligatorios.")
+            return redirect("/staff/coupons/new/")
+
+        Coupon.objects.create(
+            marketplace_id=mp_id,
+            code=code,
+            description=description,
+            discount_type=discount_type,
+            discount_value=discount_value,
+            min_order=min_order,
+            valid_until=valid_until,
+            url=url,
+            active=active,
+            verified=verified,
+        )
+        messages.success(request, f"Cupón «{code}» creado correctamente.")
+        return redirect("/staff/coupons/")
+
+
+class CouponEditView(StaffAccessMixin, View):
+    def get(self, request, pk):
+        coupon = get_object_or_404(Coupon, pk=pk)
+        return render(request, "staff/coupons/form.html", {
+            "coupon":       coupon,
+            "marketplaces": Marketplace.objects.filter(active=True),
+        })
+
+    def post(self, request, pk):
+        coupon = get_object_or_404(Coupon, pk=pk)
+        coupon.marketplace_id  = request.POST.get("marketplace") or None
+        coupon.code            = request.POST.get("code", "").strip().upper()
+        coupon.description     = request.POST.get("description", "").strip()
+        coupon.discount_type   = request.POST.get("discount_type", "percent")
+        coupon.discount_value  = request.POST.get("discount_value", "").strip() or None
+        coupon.min_order       = request.POST.get("min_order", "").strip() or None
+        coupon.valid_until     = request.POST.get("valid_until", "").strip() or None
+        coupon.url             = request.POST.get("url", "").strip()
+        coupon.active          = request.POST.get("active") == "on"
+        coupon.verified        = request.POST.get("verified") == "on"
+        coupon.save()
+        messages.success(request, f"Cupón «{coupon.code}» actualizado.")
+        return redirect("/staff/coupons/")
+
+
+class CouponDeleteView(StaffAccessMixin, View):
+    def post(self, request, pk):
+        coupon = get_object_or_404(Coupon, pk=pk)
+        code = coupon.code
+        coupon.delete()
+        messages.success(request, f"Cupón «{code}» eliminado.")
+        return redirect("/staff/coupons/")
