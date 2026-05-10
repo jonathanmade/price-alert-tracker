@@ -12,6 +12,7 @@ import Account from './pages/settings/Account'
 import Profile from './pages/settings/Profile'
 import Billing from './pages/settings/Billing'
 import Notifications from './pages/settings/Notifications'
+import Analytics from './pages/Analytics'
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -39,7 +40,8 @@ export default function App() {
         <Route path="/login" element={session ? <Navigate to="/dashboard" /> : <Login />} />
         <Route element={session ? <AppLayout /> : <Navigate to="/login" />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/history"   element={<History />} />
+          <Route path="/history"    element={<History />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings"  element={<Settings />}>
             <Route index element={<SettingsRedirect />} />
             <Route path="account" element={<Account />} />
