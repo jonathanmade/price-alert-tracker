@@ -73,10 +73,11 @@ credit_transactions (id, user_id, amount, reason, created_at)
 
 ### Django ORM (catálogo y monetización)
 ```
-Marketplace     (name, slug, base_url, affiliate_tag, active)
-Category        (name, slug)
+Marketplace      (name, slug, base_url, affiliate_tag, active)
+Category         (name, slug)
 ReferenceProduct (name, slug, description, image_url, category, active)
-ProductURL      (product, marketplace, url, affiliate_url, current_price, active)
+ProductURL       (product, marketplace, url, affiliate_url, current_price, active)
+AffiliateClick   (product_url, ip_hash, user_agent, referer, clicked_at)
 ```
 
 **Estados de alerta:** `active` → `triggered` | `paused`
@@ -91,7 +92,7 @@ ProductURL      (product, marketplace, url, affiliate_url, current_price, active
 |---|--------|--------|
 | 1 | Roles y permisos (Admin / Gestor / Cliente) | ✅ Completo |
 | 2 | Panel de administrador (CRUD productos, analytics) | ✅ Completo |
-| 3 | Sistema de afiliación y tracking de clics | 🔜 Siguiente |
+| 3 | Sistema de afiliación y tracking de clics | ✅ Completo |
 | 4 | Comparador de marketplaces | ⬜ Pendiente |
 | 5 | SEO programático (páginas auto-generadas) | ⬜ Pendiente |
 | 6 | Historial y gráficas de precios | ✅ Completo |
@@ -125,7 +126,9 @@ Los gestores se crean manualmente desde `/admin/` asignando el grupo `content_ma
 | `/staff/products/` | Lista de productos de referencia |
 | `/staff/products/new/` | Crear producto con URLs por marketplace |
 | `/staff/products/<id>/edit/` | Editar producto |
-| `/staff/analytics/` | Top productos, usuarios activos, stats 7d |
+| `/staff/analytics/` | Top productos, usuarios activos, stats 7d, clics afiliado |
+| `/staff/products/<id>/` | Detalle con clics por marketplace y links /go/ |
+| `/go/<product>/<marketplace>/` | Redirect de afiliado con tracking de clic |
 | `/admin/` | Django admin completo |
 | `/api/check-price/` | API comprobación manual (JWT required) |
 
@@ -246,3 +249,4 @@ Amazon.es · PCComponentes · MediaMarkt · El Corte Inglés · Carrefour
 - **Celery schedule:** corre cada hora y filtra alertas cuyo `check_time` cae en la hora actual (zona Europe/Madrid).
 - **Tailwind CDN en templates Django:** no usar `@apply` ni `strokeWidth` — solo clases inline y atributo `stroke-width`.
 - **Bloques Django en templates:** los `{% block %}` no pueden anidarse dentro de `{% if %}`. Usar `{% if %}` dentro del bloque.
+- **Tracking afiliado:** `AffiliateClick` guarda el IP hasheado con SHA-256 (privacidad RGPD). El redirect `/go/` registra el clic antes de redirigir al marketplace. `build_affiliate_url()` añade el tag de afiliado automáticamente según el slug del marketplace.
