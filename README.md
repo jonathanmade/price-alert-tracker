@@ -93,11 +93,11 @@ AffiliateClick   (product_url, ip_hash, user_agent, referer, clicked_at)
 | 1 | Roles y permisos (Admin / Gestor / Cliente) | ✅ Completo |
 | 2 | Panel de administrador (CRUD productos, analytics) | ✅ Completo |
 | 3 | Sistema de afiliación y tracking de clics | ✅ Completo |
-| 4 | Comparador de marketplaces | ⬜ Pendiente |
-| 5 | SEO programático (páginas auto-generadas) | ⬜ Pendiente |
+| 4 | Comparador de marketplaces | ✅ Completo |
+| 5 | SEO programático (páginas auto-generadas) | ✅ Completo |
 | 6 | Historial y gráficas de precios | ✅ Completo |
-| 7 | Buscador de cupones promocionales | ⬜ Pendiente |
-| 8 | Notificaciones Telegram | ⬜ Pendiente |
+| 7 | Buscador de cupones promocionales | ✅ Completo |
+| 8 | Notificaciones Telegram | ✅ Completo |
 
 ---
 

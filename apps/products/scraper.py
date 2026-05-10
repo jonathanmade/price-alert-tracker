@@ -79,23 +79,22 @@ def _get_domain(url: str) -> str:
     return host.replace("www.", "")
 
 
-def scrape_price(url: str) -> float | None:
+def _get_soup(url: str) -> BeautifulSoup | None:
     try:
         response = requests.get(url, headers=HEADERS, timeout=15)
         response.raise_for_status()
+        return BeautifulSoup(response.text, "html.parser")
     except requests.RequestException:
         return None
 
-    soup = BeautifulSoup(response.text, "html.parser")
 
-    # Intentar primero con schema.org <meta>
+def _price_from_soup(soup: BeautifulSoup, url: str) -> float | None:
     meta = soup.find("meta", {"itemprop": "price"})
     if meta and meta.get("content"):
         price = _extract_price(meta["content"])
         if price:
             return price
 
-    # Selectores específicos del sitio
     domain = _get_domain(url)
     site_selectors = SITE_SELECTORS.get(domain, [])
 
@@ -109,3 +108,34 @@ def scrape_price(url: str) -> float | None:
             return price
 
     return None
+
+
+def scrape_price(url: str) -> float | None:
+    soup = _get_soup(url)
+    if soup is None:
+        return None
+    return _price_from_soup(soup, url)
+
+
+def scrape_metadata(url: str) -> dict:
+    soup = _get_soup(url)
+    if soup is None:
+        return {}
+
+    name = None
+    og_title = soup.find("meta", property="og:title")
+    if og_title and og_title.get("content"):
+        name = og_title["content"].strip()
+    if not name:
+        title_tag = soup.find("title")
+        if title_tag:
+            name = title_tag.get_text().strip()
+
+    image_url = None
+    og_image = soup.find("meta", property="og:image")
+    if og_image and og_image.get("content"):
+        image_url = og_image["content"].strip()
+
+    price = _price_from_soup(soup, url)
+
+    return {"name": name, "image_url": image_url, "price": price}

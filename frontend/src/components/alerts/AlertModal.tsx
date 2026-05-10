@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { scrapeMetadata, type ProductMetadata } from '../../api/djangoApi'
 
 interface Props {
   onClose: () => void
   onCreate: (url: string, name: string, targetPrice: number, checkTime: string) => Promise<{ error: string | null }>
 }
+
+type MetaStatus = 'idle' | 'loading' | 'done' | 'failed'
 
 export default function AlertModal({ onClose, onCreate }: Props) {
   const [url, setUrl]         = useState('')
@@ -13,21 +16,48 @@ export default function AlertModal({ onClose, onCreate }: Props) {
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
 
+  const [metaStatus, setMetaStatus] = useState<MetaStatus>('idle')
+  const [meta, setMeta]             = useState<ProductMetadata | null>(null)
+
+  const fetchMeta = async (rawUrl: string) => {
+    try { new URL(rawUrl) } catch { return }
+    setMetaStatus('loading')
+    const data = await scrapeMetadata(rawUrl)
+    if (data.name) {
+      setMeta(data)
+      if (!name) setName(data.name)
+      if (!price && data.price) {
+        const suggested = Math.floor(data.price * 0.9 * 100) / 100
+        setPrice(String(suggested))
+      }
+      setMetaStatus('done')
+    } else {
+      setMetaStatus('failed')
+    }
+  }
+
+  const handleUrlBlur = () => {
+    if (url && metaStatus === 'idle') fetchMeta(url)
+  }
+
+  const handleUrlChange = (v: string) => {
+    setUrl(v)
+    setMetaStatus('idle')
+    setMeta(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
     const targetPrice = parseFloat(price)
     if (!url || isNaN(targetPrice) || targetPrice <= 0) {
       setError('Rellena todos los campos correctamente.')
       return
     }
-
     setLoading(true)
     const checkTime = `${hour.padStart(2, '0')}:00:00`
     const { error } = await onCreate(url, name || url, targetPrice, checkTime)
     setLoading(false)
-
     if (error) { setError(error); return }
     onClose()
   }
@@ -47,18 +77,55 @@ export default function AlertModal({ onClose, onCreate }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+
+          {/* URL */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">URL del producto</label>
-            <input
-              type="url"
-              required
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-              placeholder="https://amazon.es/dp/..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <div className="relative">
+              <input
+                type="url"
+                required
+                value={url}
+                onChange={e => handleUrlChange(e.target.value)}
+                onBlur={handleUrlBlur}
+                placeholder="https://amazon.es/dp/..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-9"
+              />
+              {metaStatus === 'loading' && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Detectamos el nombre y precio automáticamente al pegar la URL.
+            </p>
           </div>
 
+          {/* Product preview */}
+          {metaStatus === 'done' && meta && (
+            <div className="flex items-center gap-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+              {meta.image_url && (
+                <img
+                  src={meta.image_url}
+                  alt=""
+                  className="w-12 h-12 object-contain rounded-lg bg-white border border-gray-100 shrink-0"
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-800 truncate">{meta.name}</p>
+                {meta.price != null && (
+                  <p className="text-xs text-indigo-600 mt-0.5">
+                    Precio actual: <b>€{meta.price.toFixed(2)}</b>
+                  </p>
+                )}
+              </div>
+              <span className="text-green-500 text-lg shrink-0">✓</span>
+            </div>
+          )}
+
+          {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nombre <span className="text-gray-400 font-normal">(opcional)</span>
@@ -72,6 +139,7 @@ export default function AlertModal({ onClose, onCreate }: Props) {
             />
           </div>
 
+          {/* Target price */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Precio objetivo (€)</label>
             <div className="relative">
@@ -87,9 +155,14 @@ export default function AlertModal({ onClose, onCreate }: Props) {
                 className="w-full border border-gray-300 rounded-lg pl-7 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">Te avisamos cuando el precio baje de esta cantidad.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {meta?.price != null
+                ? <>Precio actual €{meta.price.toFixed(2)} · Te avisamos cuando baje de tu objetivo.</>
+                : 'Te avisamos cuando el precio baje de esta cantidad.'}
+            </p>
           </div>
 
+          {/* Check hour */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Hora de comprobación diaria</label>
             <div className="flex items-center gap-2">

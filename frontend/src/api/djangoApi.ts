@@ -61,6 +61,27 @@ export async function unlinkTelegram(): Promise<{ ok?: boolean; error?: string }
   }
 }
 
+// ── Metadata scraping ─────────────────────────────────────────────────────────
+
+export interface ProductMetadata {
+  name?: string
+  image_url?: string | null
+  price?: number | null
+}
+
+export async function scrapeMetadata(url: string): Promise<ProductMetadata> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/scrape-metadata/`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ url }),
+    })
+    return await res.json()
+  } catch {
+    return {}
+  }
+}
+
 // ── Price check ───────────────────────────────────────────────────────────────
 
 export async function triggerPriceCheck(alertId: string): Promise<CheckResult> {

@@ -6,7 +6,7 @@ from django.conf import settings
 import json
 
 from apps.users.supabase_auth import verify_supabase_token
-from apps.products.scraper import scrape_price
+from apps.products.scraper import scrape_price, scrape_metadata
 from apps.alerts.notifications import send_price_alert
 from supabase import create_client
 
@@ -122,3 +122,23 @@ def check_price_now(request):
         "triggered": triggered,
         "credits_remaining": credits - 1,
     })
+
+
+@csrf_exempt
+@require_POST
+def scrape_metadata_view(request):
+    payload = verify_supabase_token(request)
+    if not payload:
+        return JsonResponse({"error": "No autorizado"}, status=401)
+
+    try:
+        body = json.loads(request.body)
+        url = body.get("url", "").strip()
+    except ValueError:
+        return JsonResponse({"error": "JSON inválido"}, status=400)
+
+    if not url:
+        return JsonResponse({"error": "url requerida"}, status=400)
+
+    data = scrape_metadata(url)
+    return JsonResponse(data)
