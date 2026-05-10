@@ -1,7 +1,8 @@
-# PriceAlert
+# PriceRadar
 
-Plataforma de alertas de precio para el mercado español. Los usuarios registran URLs de productos con un precio objetivo; el sistema comprueba el precio periódicamente y notifica por email cuando baja.
+Plataforma de alertas de precio para el mercado español. Los usuarios registran URLs de productos con un precio objetivo; el sistema comprueba el precio periódicamente y notifica por email y Telegram cuando baja.
 
+**Dominio:** [pricearadar.com](https://pricearadar.com)
 **Modelo de negocio:** plataforma gratuita monetizada con links de afiliado, SEO programático y Google AdSense.
 
 ---
@@ -15,6 +16,7 @@ Plataforma de alertas de precio para el mercado español. Los usuarios registran
 | Cola de tareas | Redis |
 | Scraping | BeautifulSoup + Requests |
 | Email | SendGrid |
+| Notificaciones | Telegram Bot API |
 | Frontend público | React + Vite + Tailwind CSS |
 | Panel de gestión interna | Django Templates + Tailwind CDN |
 
@@ -34,7 +36,8 @@ Plataforma de alertas de precio para el mercado español. Los usuarios registran
 │  ┌───────────┐  ┌──────────┐  ┌────────────────────┐   │
 │  │ Auth ES256│  │PostgREST │  │  PostgreSQL         │   │
 │  │ (JWKS)    │  │ + RLS    │  │  profiles / products│   │
-│  └───────────┘  └──────────┘  │  alerts / history   │   │
+│  └───────────┘  └──────────┘  │  alerts / alert_urls│   │
+│                               │  price_history       │   │
 │                               │  credit_transactions │   │
 │                               └────────────────────┘   │
 └──────────────────────────────┬──────────────────────────┘
@@ -43,15 +46,17 @@ Plataforma de alertas de precio para el mercado español. Los usuarios registran
 ┌─────────────────────────────────────────────────────────┐
 │              DJANGO (API + Worker + Staff)               │
 │                                                         │
-│  /api/check-price/   → comprobación manual (JWT ES256)  │
-│  /staff/             → panel gestor (session auth)      │
-│  /admin/             → Django admin (superusuario)      │
+│  /api/check-price/      → comprobación manual (JWT)     │
+│  /api/scrape-metadata/  → detección automática de URL   │
+│  /api/telegram/*        → vinculación cuenta Telegram   │
+│  /staff/                → panel gestor (session auth)   │
+│  /admin/                → Django admin (superusuario)   │
 │                                                         │
 │  Celery Beat (cada hora):                               │
 │   - filtra alertas por check_time == hora actual        │
-│   - scraping con BeautifulSoup                          │
+│   - scraping con BeautifulSoup (primary + alert_urls)   │
 │   - guarda en price_history                             │
-│   - envía email si precio ≤ objetivo (SendGrid)         │
+│   - envía email + Telegram si precio ≤ objetivo         │
 │                                                         │
 │  Redis (broker Celery)                                  │
 └─────────────────────────────────────────────────────────┘
@@ -67,6 +72,8 @@ profiles            (id → auth.users, email, credits, created_at)
 products            (id, user_id, name, url, current_price, last_checked_at)
 alerts              (id, user_id, product_id, target_price, status,
                      check_time TIME, triggered_at, created_at)
+alert_urls          (id, alert_id, url, marketplace_label,
+                     current_price, last_checked_at)          ← multi-marketplace
 price_history       (id, product_id, price, checked_at)
 credit_transactions (id, user_id, amount, reason, created_at)
 ```
@@ -78,15 +85,19 @@ Category         (name, slug)
 ReferenceProduct (name, slug, description, image_url, category, active)
 ProductURL       (product, marketplace, url, affiliate_url, current_price, active)
 AffiliateClick   (product_url, ip_hash, user_agent, referer, clicked_at)
+Coupon           (marketplace, code, description, discount_type,
+                  discount_value, min_order, valid_until, active, verified)
+TelegramAccount  (user_id UUID, chat_id, username, first_name, active)
+TelegramLinkToken(user_id UUID, token, created_at)            ← TTL 15 min
 ```
 
 **Estados de alerta:** `active` → `triggered` | `paused`
 
-**Créditos:** 10 al registrarse. Cada comprobación consume 1.
+**Créditos:** 10 al registrarse. Cada comprobación consume 1 (independientemente del número de marketplaces).
 
 ---
 
-## Módulos (plan de desarrollo)
+## Módulos implementados
 
 | # | Módulo | Estado |
 |---|--------|--------|
@@ -98,6 +109,11 @@ AffiliateClick   (product_url, ip_hash, user_agent, referer, clicked_at)
 | 6 | Historial y gráficas de precios | ✅ Completo |
 | 7 | Buscador de cupones promocionales | ✅ Completo |
 | 8 | Notificaciones Telegram | ✅ Completo |
+| 9 | Onboarding y detección automática de producto | ✅ Completo |
+| 10 | Multi-marketplace en alertas | ✅ Completo |
+| 11 | Analytics del usuario | ✅ Completo |
+
+**Pendiente:** pruebas UX/UI · configuración producción (nginx + Gunicorn) · deploy en pricearadar.com
 
 ---
 
@@ -120,17 +136,28 @@ Los gestores se crean manualmente desde `/admin/` asignando el grupo `content_ma
 | `/` | Landing pública (React) |
 | `/login` | Auth cliente via Supabase (React) |
 | `/dashboard` | Panel de alertas del cliente (React) |
-| `/settings/*` | Cuenta, perfil, billing (React) |
+| `/history` | Historial de precios con gráficas (React) |
+| `/analytics` | Estadísticas personales y ahorro (React) |
+| `/settings/*` | Cuenta, perfil, billing, notificaciones (React) |
 | `/staff/login/` | Login interno staff (Django template) |
 | `/staff/` | Dashboard con stats en tiempo real |
 | `/staff/products/` | Lista de productos de referencia |
 | `/staff/products/new/` | Crear producto con URLs por marketplace |
 | `/staff/products/<id>/edit/` | Editar producto |
 | `/staff/analytics/` | Top productos, usuarios activos, stats 7d, clics afiliado |
-| `/staff/products/<id>/` | Detalle con clics por marketplace y links /go/ |
+| `/staff/coupons/` | CRUD de cupones promocionales |
 | `/go/<product>/<marketplace>/` | Redirect de afiliado con tracking de clic |
+| `/comparar/` | Comparador público de marketplaces |
+| `/comparar/<categoria>/` | Categoría del comparador |
+| `/producto/<slug>/` | Ficha pública de producto con precios |
+| `/cupones/` | Buscador público de cupones |
 | `/admin/` | Django admin completo |
-| `/api/check-price/` | API comprobación manual (JWT required) |
+| `/api/check-price/` | Comprobación manual (JWT required) |
+| `/api/scrape-metadata/` | Detección automática nombre/precio/imagen (JWT) |
+| `/api/telegram/status/` | Estado vinculación Telegram (JWT) |
+| `/api/telegram/link/` | Generar enlace de vinculación (JWT) |
+| `/api/telegram/unlink/` | Desvincular cuenta Telegram (JWT) |
+| `/telegram/webhook/` | Webhook entrante del bot de Telegram |
 
 ---
 
@@ -141,9 +168,10 @@ price-alert-tracker/
 ├── apps/
 │   ├── users/          # Modelo User (AbstractUser + email login)
 │   ├── products/       # Scraper + tarea Celery check_all_prices
-│   ├── alerts/         # Vista check_price_now + notificaciones
-│   ├── catalog/        # Marketplace, Category, ReferenceProduct, ProductURL
-│   └── staff/          # Panel gestor: login, dashboard, CRUD, analytics, mixins
+│   ├── alerts/         # check_price_now, scrape_metadata, notificaciones
+│   ├── catalog/        # Marketplace, Category, ReferenceProduct, Coupon
+│   ├── staff/          # Panel gestor: login, dashboard, CRUD, analytics
+│   └── telegram_bot/   # Bot, modelos TelegramAccount/LinkToken, webhook
 ├── config/
 │   ├── settings/
 │   │   ├── base.py
@@ -152,23 +180,17 @@ price-alert-tracker/
 │   ├── celery.py
 │   └── urls.py
 ├── templates/
-│   └── staff/
-│       ├── base.html         # Sidebar + layout
-│       ├── login.html
-│       ├── dashboard.html
-│       ├── analytics.html
-│       └── products/
-│           ├── list.html
-│           ├── form.html     # Crear y editar
-│           └── detail.html
+│   ├── catalog/        # Comparador, ficha producto, cupones
+│   └── staff/          # Panel gestor completo
 ├── frontend/           # React + Vite + Tailwind
 │   └── src/
 │       ├── api/        # supabase.ts, djangoApi.ts, types.ts
-│       ├── components/ # AlertCard, AlertModal, PriceChart, UserMenu…
-│       ├── hooks/      # useAlerts, useCredits
-│       └── pages/      # Dashboard, Landing, Settings, History…
+│       ├── components/ # AlertCard, AlertModal, PriceChart, Sidebar…
+│       ├── hooks/      # useAlerts, useCredits, useHistory, useAnalytics
+│       └── pages/      # Dashboard, Analytics, History, Settings, Landing…
 ├── supabase/
-│   └── migrations/     # SQL aplicado en Supabase
+│   └── migrations/     # 001_tables_and_rls · 002_credits · 003_check_time
+│                       # 004_alert_urls
 ├── requirements.txt
 └── .env.example
 ```
@@ -180,7 +202,7 @@ price-alert-tracker/
 ### Requisitos
 - Python 3.11+
 - Node 18+
-- Redis (vía Docker o instalado)
+- Redis (vía Docker)
 - Cuenta en Supabase
 
 ### Backend
@@ -220,19 +242,45 @@ npm run dev
 
 ## Variables de entorno
 
+### Backend (`.env`)
+
 | Variable | Descripción |
 |----------|-------------|
 | `SECRET_KEY` | Clave secreta Django |
-| `DATABASE_URL` | URI pooler Supabase (`aws-0-eu-west-1.pooler.supabase.com`) |
+| `DATABASE_URL` | URI pooler Supabase |
 | `SUPABASE_URL` | URL del proyecto Supabase |
-| `SUPABASE_ANON_KEY` | Clave pública (frontend React) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clave privada (Django backend) |
-| `SUPABASE_JWT_SECRET` | Solo referencia; auth usa JWKS (ES256) |
+| `SUPABASE_ANON_KEY` | Clave pública |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave privada (solo backend) |
+| `SUPABASE_JWT_SECRET` | Referencia; auth usa JWKS (ES256) |
 | `REDIS_URL` | URL de Redis |
 | `SENDGRID_API_KEY` | API key de SendGrid |
 | `DEFAULT_FROM_EMAIL` | Email remitente |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos (frontend URLs) |
-| `FRONTEND_URL` | URL del frontend React (default: http://localhost:5173) |
+| `FRONTEND_URL` | URL del frontend React |
+| `TELEGRAM_BOT_TOKEN` | Token del bot de Telegram |
+| `TELEGRAM_BOT_NAME` | Username del bot (sin @) |
+| `TELEGRAM_WEBHOOK_SECRET` | Token secreto para validar webhooks |
+
+### Frontend (`frontend/.env`)
+
+| Variable | Descripción |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | URL del proyecto Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Clave pública Supabase |
+| `VITE_DJANGO_API_URL` | URL del backend Django (ej: `http://localhost:8001`) |
+
+---
+
+## Supabase — migraciones
+
+Ejecutar en orden en **SQL Editor** del proyecto:
+
+| Archivo | Descripción |
+|---------|-------------|
+| `001_tables_and_rls.sql` | Tablas principales + RLS |
+| `002_credits.sql` | Sistema de créditos |
+| `003_check_time.sql` | Campo check_time en alerts |
+| `004_alert_urls.sql` | Multi-marketplace (alert_urls) |
 
 ---
 
@@ -246,7 +294,8 @@ Amazon.es · PCComponentes · MediaMarkt · El Corte Inglés · Carrefour
 
 - **JWT ES256:** Supabase nuevos proyectos firman con ES256. La verificación usa `PyJWKClient` contra el endpoint JWKS (`/auth/v1/.well-known/jwks.json`), no el JWT secret directamente.
 - **Profiles sin FK directa:** `alerts.user_id` referencia `auth.users`, no `public.profiles`. Las queries a profiles se hacen por separado con el `user_id`.
+- **Multi-marketplace:** `alert_urls` almacena URLs adicionales por alerta. El worker y el endpoint manual comprueban todas las URLs consumiendo 1 solo crédito por alerta.
 - **Celery schedule:** corre cada hora y filtra alertas cuyo `check_time` cae en la hora actual (zona Europe/Madrid).
-- **Tailwind CDN en templates Django:** no usar `@apply` ni `strokeWidth` — solo clases inline y atributo `stroke-width`.
-- **Bloques Django en templates:** los `{% block %}` no pueden anidarse dentro de `{% if %}`. Usar `{% if %}` dentro del bloque.
-- **Tracking afiliado:** `AffiliateClick` guarda el IP hasheado con SHA-256 (privacidad RGPD). El redirect `/go/` registra el clic antes de redirigir al marketplace. `build_affiliate_url()` añade el tag de afiliado automáticamente según el slug del marketplace.
+- **Telegram linking:** tokens de 15 min en `TelegramLinkToken`; el bot responde a `/start <token>` para vincular la cuenta.
+- **Tracking afiliado:** `AffiliateClick` guarda el IP hasheado con SHA-256 (privacidad RGPD).
+- **Deploy previsto:** nginx como reverse proxy en pricearadar.com — mismo dominio para React (estáticos) y Django (API + staff).
