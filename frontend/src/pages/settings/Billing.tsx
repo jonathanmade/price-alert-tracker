@@ -70,7 +70,7 @@ export default function Billing() {
     <div className="max-w-2xl space-y-8">
 
       {/* Créditos actuales */}
-      <section className="bg-white border border-gray-200 rounded-2xl p-6">
+      <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-4">Créditos disponibles</h2>
         <div className="flex items-end gap-3">
           <span className="text-5xl font-bold text-indigo-600">
@@ -134,7 +134,7 @@ export default function Billing() {
       </section>
 
       {/* Historial de transacciones */}
-      <section className="bg-white border border-gray-200 rounded-2xl p-6">
+      <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-4">Historial de créditos</h2>
         {transactions.length === 0 ? (
           <p className="text-sm text-gray-400">Sin transacciones todavía.</p>

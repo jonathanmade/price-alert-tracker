@@ -51,7 +51,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
     : null
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-sm transition-shadow">
+    <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow transition-shadow">
       <div className="flex items-start justify-between gap-4">
 
         <div className="flex-1 min-w-0">
@@ -157,7 +157,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
             disabled={checking}
             className="text-xs text-indigo-600 hover:text-indigo-800 px-3 py-1.5 rounded-lg border border-indigo-200 hover:border-indigo-300 transition-colors disabled:opacity-50"
           >
-            {checking ? '⏳ Buscando...' : '🔄 Comprobar'}
+            {checking ? 'Buscando...' : 'Comprobar ahora'}
           </button>
           <button
             onClick={() => onTogglePause(alert)}

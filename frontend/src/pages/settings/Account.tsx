@@ -45,7 +45,7 @@ export default function Account() {
     <div className="max-w-xl space-y-8">
 
       {/* Email */}
-      <section className="bg-white border border-gray-200 rounded-2xl p-6">
+      <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-4">Email</h2>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -64,7 +64,7 @@ export default function Account() {
       </section>
 
       {/* Cambiar contraseña */}
-      <section className="bg-white border border-gray-200 rounded-2xl p-6">
+      <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-4">Contraseña</h2>
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>

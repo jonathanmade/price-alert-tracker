@@ -20,110 +20,115 @@ export default function Dashboard() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <>
+      {/* Page header */}
+      <div className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mis alertas</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            {alerts.length === 0 ? 'Ninguna alerta todavía' : `${active.length} activa${active.length !== 1 ? 's' : ''}`}
+          <h1 className="text-lg font-semibold text-gray-900">Mis alertas</h1>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {alerts.length === 0
+              ? 'Ninguna alerta todavía'
+              : `${active.length} activa${active.length !== 1 ? 's' : ''} · ${alerts.length} en total`}
           </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
         >
           + Nueva alerta
         </button>
       </div>
 
-      {/* Empty state */}
-      {alerts.length === 0 && (
-        <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-12 text-center">
-          <p className="text-4xl mb-3">🔔</p>
-          <h3 className="text-base font-semibold text-gray-700 mb-1">Sin alertas todavía</h3>
-          <p className="text-sm text-gray-400 mb-5">
-            Crea tu primera alerta y te avisamos cuando baje el precio.
-          </p>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors"
-          >
-            Crear primera alerta
-          </button>
-        </div>
-      )}
+      {/* Content */}
+      <div className="px-8 py-8 space-y-6">
 
-      {/* Triggered */}
-      {triggered.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Precio alcanzado 🎉
-          </h2>
-          <div className="space-y-3">
-            {triggered.map(alert => (
-              <AlertCard
-                key={alert.id}
-                alert={alert}
-                onDelete={deleteAlert}
-                onTogglePause={togglePause}
-                onCheckNow={checkNow}
-                onUpdateCheckTime={updateCheckTime}
-              />
-            ))}
+        {/* Empty state */}
+        {alerts.length === 0 && (
+          <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-12 text-center">
+            <h3 className="text-base font-semibold text-gray-700 mb-1">Sin alertas todavía</h3>
+            <p className="text-sm text-gray-400 mb-5">
+              Crea tu primera alerta y te avisamos cuando baje el precio.
+            </p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              Crear primera alerta
+            </button>
           </div>
-        </section>
-      )}
+        )}
 
-      {/* Active */}
-      {active.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Activas
-          </h2>
-          <div className="space-y-3">
-            {active.map(alert => (
-              <AlertCard
-                key={alert.id}
-                alert={alert}
-                onDelete={deleteAlert}
-                onTogglePause={togglePause}
-                onCheckNow={checkNow}
-                onUpdateCheckTime={updateCheckTime}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+        {/* Triggered */}
+        {triggered.length > 0 && (
+          <section>
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Precio alcanzado
+            </h2>
+            <div className="space-y-3">
+              {triggered.map(alert => (
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  onDelete={deleteAlert}
+                  onTogglePause={togglePause}
+                  onCheckNow={checkNow}
+                  onUpdateCheckTime={updateCheckTime}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* Paused */}
-      {paused.length > 0 && (
-        <section>
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Pausadas
-          </h2>
-          <div className="space-y-3">
-            {paused.map(alert => (
-              <AlertCard
-                key={alert.id}
-                alert={alert}
-                onDelete={deleteAlert}
-                onTogglePause={togglePause}
-                onCheckNow={checkNow}
-                onUpdateCheckTime={updateCheckTime}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+        {/* Active */}
+        {active.length > 0 && (
+          <section>
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Activas
+            </h2>
+            <div className="space-y-3">
+              {active.map(alert => (
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  onDelete={deleteAlert}
+                  onTogglePause={togglePause}
+                  onCheckNow={checkNow}
+                  onUpdateCheckTime={updateCheckTime}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* Modal */}
+        {/* Paused */}
+        {paused.length > 0 && (
+          <section>
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Pausadas
+            </h2>
+            <div className="space-y-3">
+              {paused.map(alert => (
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  onDelete={deleteAlert}
+                  onTogglePause={togglePause}
+                  onCheckNow={checkNow}
+                  onUpdateCheckTime={updateCheckTime}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+      </div>
+
       {showModal && (
         <AlertModal
           onClose={() => setShowModal(false)}
           onCreate={createAlert}
         />
       )}
-    </div>
+    </>
   )
 }
