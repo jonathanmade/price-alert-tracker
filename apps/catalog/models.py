@@ -1,3 +1,4 @@
+import hashlib
 from django.db import models
 from django.utils.text import slugify
 
@@ -79,3 +80,37 @@ class ProductURL(models.Model):
 
     def __str__(self):
         return f"{self.product.name} — {self.marketplace.name}"
+
+    def build_affiliate_url(self) -> str:
+        """Devuelve la URL de destino con tag de afiliado si está configurado."""
+        if self.affiliate_url:
+            return self.affiliate_url
+        tag = self.marketplace.affiliate_tag
+        if self.marketplace.slug == "amazon" and tag:
+            sep = "&" if "?" in self.url else "?"
+            return f"{self.url}{sep}tag={tag}"
+        return self.url
+
+    @property
+    def click_count(self) -> int:
+        return self.clicks.count()
+
+
+class AffiliateClick(models.Model):
+    product_url = models.ForeignKey(ProductURL, on_delete=models.CASCADE, related_name="clicks")
+    ip_hash     = models.CharField(max_length=64, blank=True)   # SHA-256 — sin datos personales
+    user_agent  = models.CharField(max_length=300, blank=True)
+    referer     = models.CharField(max_length=500, blank=True)
+    clicked_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-clicked_at"]
+        verbose_name = "clic de afiliado"
+        verbose_name_plural = "clics de afiliado"
+
+    def __str__(self):
+        return f"{self.product_url} — {self.clicked_at:%Y-%m-%d %H:%M}"
+
+    @staticmethod
+    def hash_ip(ip: str) -> str:
+        return hashlib.sha256(ip.encode()).hexdigest() if ip else ""

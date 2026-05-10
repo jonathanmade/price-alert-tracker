@@ -7,7 +7,7 @@ from django.utils.text import slugify
 from supabase import create_client
 
 from .mixins import StaffAccessMixin, AdminOnlyMixin, is_staff_user
-from apps.catalog.models import ReferenceProduct, ProductURL, Marketplace, Category
+from apps.catalog.models import ReferenceProduct, ProductURL, Marketplace, Category, AffiliateClick
 
 
 def _supabase():
@@ -232,13 +232,32 @@ class AnalyticsView(StaffAccessMixin, View):
         mp_stats = []
         for mp in Marketplace.objects.filter(active=True):
             mp_stats.append({
-                "name":  mp.name,
-                "count": ProductURL.objects.filter(marketplace=mp, active=True).count(),
+                "name":   mp.name,
+                "urls":   ProductURL.objects.filter(marketplace=mp, active=True).count(),
+                "clicks": AffiliateClick.objects.filter(product_url__marketplace=mp).count(),
             })
 
+        # Clics de afiliado
+        from django.db.models import Count
+        clicks_total = AffiliateClick.objects.count()
+        clicks_7d    = AffiliateClick.objects.filter(
+            clicked_at__gte=datetime.now(timezone.utc) - timedelta(days=7)
+        ).count()
+
+        top_clicked = (
+            ProductURL.objects
+            .annotate(total_clicks=Count("clicks"))
+            .filter(total_clicks__gt=0)
+            .select_related("product", "marketplace")
+            .order_by("-total_clicks")[:10]
+        )
+
         return render(request, "staff/analytics.html", {
-            "top_products": top_products,
-            "top_users":    top_users,
-            "mp_stats":     mp_stats,
-            "checks_7d":    checks_7d,
+            "top_products":  top_products,
+            "top_users":     top_users,
+            "mp_stats":      mp_stats,
+            "checks_7d":     checks_7d,
+            "clicks_total":  clicks_total,
+            "clicks_7d":     clicks_7d,
+            "top_clicked":   top_clicked,
         })
