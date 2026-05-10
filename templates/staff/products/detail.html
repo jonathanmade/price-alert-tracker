@@ -118,12 +118,19 @@
     </div>
 
     <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
-      <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">SEO</p>
-      <p class="text-xs text-indigo-700 leading-relaxed">
-        Página pública disponible en:<br/>
-        <span class="font-mono">/producto/{{ product.slug }}/</span>
+      <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">Página pública</p>
+      <p class="text-xs text-indigo-700 leading-relaxed mb-3">
+        Comparador de precios disponible en:
       </p>
-      <p class="text-xs text-indigo-400 mt-2">Módulo 5 — pendiente</p>
+      <a href="/producto/{{ product.slug }}/" target="_blank"
+         class="text-xs font-mono text-indigo-600 hover:text-indigo-800 transition-colors break-all">
+        /producto/{{ product.slug }}/ ↗
+      </a>
+      <p class="text-xs text-indigo-400 mt-3">
+        <a href="/comparar/" target="_blank" class="hover:text-indigo-600 transition-colors">
+          Ver catálogo completo →
+        </a>
+      </p>
     </div>
   </div>
 

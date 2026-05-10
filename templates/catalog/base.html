@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Comparar precios{% endblock %} · PriceAlert</title>
+  <meta name="description" content="{% block meta_description %}Compara precios en Amazon, PCComponentes, MediaMarkt y más. Alertas gratuitas de bajadas de precio.{% endblock %}">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-full flex flex-col">
+
+  <!-- Navbar -->
+  <header class="bg-white border-b border-gray-100 sticky top-0 z-10">
+    <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-8">
+        <a href="/comparar/" class="text-indigo-600 font-bold text-lg tracking-tight">PriceAlert</a>
+        <a href="/comparar/" class="text-sm text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
+          Comparar precios
+        </a>
+      </div>
+      <a href="{{ FRONTEND_URL }}"
+         class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+        Entrar
+      </a>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-100 bg-white mt-16">
+    <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
+      <span>© 2025 PriceAlert · Alertas de precio para el mercado español</span>
+      <a href="{{ FRONTEND_URL }}" class="hover:text-indigo-600 transition-colors">Crear cuenta gratis →</a>
+    </div>
+  </footer>
+
+</body>
+</html>
