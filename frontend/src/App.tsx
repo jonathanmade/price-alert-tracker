@@ -11,6 +11,7 @@ import Settings, { SettingsRedirect } from './pages/Settings'
 import Account from './pages/settings/Account'
 import Profile from './pages/settings/Profile'
 import Billing from './pages/settings/Billing'
+import Notifications from './pages/settings/Notifications'
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -43,7 +44,8 @@ export default function App() {
             <Route index element={<SettingsRedirect />} />
             <Route path="account" element={<Account />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="billing" element={<Billing />} />
+            <Route path="billing"        element={<Billing />} />
+            <Route path="notifications"  element={<Notifications />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to={session ? '/dashboard' : '/'} />} />

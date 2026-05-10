@@ -102,6 +102,15 @@ def check_price_now(request):
             current_price=current_price,
             target_price=float(alert["target_price"]),
         )
+        # Notificación Telegram si el usuario tiene la cuenta vinculada
+        try:
+            from apps.telegram_bot.models import TelegramAccount
+            from apps.telegram_bot.bot import send_alert as tg_send
+            tg = TelegramAccount.objects.get(user_id=user_id, active=True)
+            tg_send(tg.chat_id, product["name"], product["url"],
+                    current_price, float(alert["target_price"]))
+        except Exception:
+            pass
         supabase.table("alerts").update({
             "status": "triggered",
             "triggered_at": now,

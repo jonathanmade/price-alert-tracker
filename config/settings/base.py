@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "apps.alerts",
     "apps.staff",
     "apps.catalog",
+    "apps.telegram_bot",
 ]
 
 MIDDLEWARE = [
@@ -110,3 +111,8 @@ SUPABASE_JWT_SECRET = env("SUPABASE_JWT_SECRET")
 # SendGrid
 SENDGRID_API_KEY = env("SENDGRID_API_KEY", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@pricealert.com")
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN    = env("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_BOT_NAME     = env("TELEGRAM_BOT_NAME", default="")       # sin @, ej: PriceAlertBot
+TELEGRAM_WEBHOOK_SECRET = env("TELEGRAM_WEBHOOK_SECRET", default="")

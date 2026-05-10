@@ -17,6 +17,52 @@ interface CheckResult {
   error?: string
 }
 
+// ── Telegram API ─────────────────────────────────────────────────────────────
+
+export interface TelegramStatus {
+  linked: boolean
+  username?: string
+  first_name?: string
+  linked_at?: string
+}
+
+export async function getTelegramStatus(): Promise<TelegramStatus> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/telegram/status/`, {
+      headers: await authHeaders(),
+    })
+    return await res.json()
+  } catch {
+    return { linked: false }
+  }
+}
+
+export async function getTelegramLinkUrl(): Promise<{ link_url?: string; expires_in?: number; error?: string }> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/telegram/link/`, {
+      method: 'POST',
+      headers: await authHeaders(),
+    })
+    return await res.json()
+  } catch {
+    return { error: 'Error de conexión' }
+  }
+}
+
+export async function unlinkTelegram(): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/telegram/unlink/`, {
+      method: 'POST',
+      headers: await authHeaders(),
+    })
+    return await res.json()
+  } catch {
+    return { error: 'Error de conexión' }
+  }
+}
+
+// ── Price check ───────────────────────────────────────────────────────────────
+
 export async function triggerPriceCheck(alertId: string): Promise<CheckResult> {
   try {
     const res = await fetch(`${BASE_URL}/api/check-price/`, {

@@ -1,9 +1,10 @@
 import { NavLink, Outlet, Navigate } from 'react-router-dom'
 
 const tabs = [
-  { to: '/settings/account', label: 'Cuenta' },
-  { to: '/settings/profile', label: 'Perfil' },
-  { to: '/settings/billing', label: 'Billing' },
+  { to: '/settings/account',       label: 'Cuenta' },
+  { to: '/settings/profile',       label: 'Perfil' },
+  { to: '/settings/billing',       label: 'Billing' },
+  { to: '/settings/notifications', label: 'Notificaciones' },
 ]
 
 export default function Settings() {

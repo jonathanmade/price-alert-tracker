@@ -4,6 +4,12 @@ from django.urls import path, include
 
 from apps.alerts.views import check_price_now
 from apps.catalog.sitemaps import CatalogSitemap, ProductSitemap
+from apps.telegram_bot.views import (
+    TelegramWebhookView,
+    TelegramStatusView,
+    TelegramLinkView,
+    TelegramUnlinkView,
+)
 from apps.catalog.views import (
     AffiliateRedirectView,
     CatalogView,
@@ -39,4 +45,11 @@ urlpatterns = [
     path("sitemap.xml", sitemap, {"sitemaps": _sitemaps},
          name="django.contrib.sitemaps.views.sitemap"),
     path("robots.txt",  robots_txt, name="robots_txt"),
+
+    # Telegram webhook (Telegram → Django)
+    path("telegram/webhook/",    TelegramWebhookView.as_view(), name="telegram_webhook"),
+    # Telegram API (React → Django)
+    path("api/telegram/status/", TelegramStatusView.as_view(),  name="telegram_status"),
+    path("api/telegram/link/",   TelegramLinkView.as_view(),    name="telegram_link"),
+    path("api/telegram/unlink/", TelegramUnlinkView.as_view(),  name="telegram_unlink"),
 ]
