@@ -92,30 +92,45 @@ def check_price_now(request):
         "checked_at": now,
     }).execute()
 
-    # Disparar alerta si el precio alcanza el objetivo
-    triggered = False
-    if current_price <= float(alert["target_price"]) and alert["status"] == "active":
+    def _trigger_alert(hit_url: str, hit_price: float):
         send_price_alert(
             to_email=profile["email"],
             product_name=product["name"],
-            product_url=product["url"],
-            current_price=current_price,
+            product_url=hit_url,
+            current_price=hit_price,
             target_price=float(alert["target_price"]),
         )
-        # Notificación Telegram si el usuario tiene la cuenta vinculada
         try:
             from apps.telegram_bot.models import TelegramAccount
             from apps.telegram_bot.bot import send_alert as tg_send
             tg = TelegramAccount.objects.get(user_id=user_id, active=True)
-            tg_send(tg.chat_id, product["name"], product["url"],
-                    current_price, float(alert["target_price"]))
+            tg_send(tg.chat_id, product["name"], hit_url, hit_price, float(alert["target_price"]))
         except Exception:
             pass
         supabase.table("alerts").update({
             "status": "triggered",
             "triggered_at": now,
         }).eq("id", alert_id).execute()
+
+    # Comprobar precio principal
+    triggered = False
+    if current_price <= float(alert["target_price"]) and alert["status"] == "active":
+        _trigger_alert(product["url"], current_price)
         triggered = True
+
+    # Comprobar URLs adicionales (multi-marketplace)
+    extra_urls = supabase.table("alert_urls").select("*").eq("alert_id", alert_id).execute().data or []
+    for au in extra_urls:
+        au_price = scrape_price(au["url"])
+        if au_price is None:
+            continue
+        supabase.table("alert_urls").update({
+            "current_price": au_price,
+            "last_checked_at": now,
+        }).eq("id", au["id"]).execute()
+        if not triggered and au_price <= float(alert["target_price"]) and alert["status"] == "active":
+            _trigger_alert(au["url"], au_price)
+            triggered = True
 
     return JsonResponse({
         "price": current_price,

@@ -19,10 +19,20 @@ function formatHour(checkTime: string): string {
   return checkTime ? checkTime.substring(0, 5) : '09:00'
 }
 
+function domainLabel(url: string): string {
+  try {
+    const host = new URL(url).hostname.replace('www.', '')
+    const name = host.split('.')[0]
+    return name.charAt(0).toUpperCase() + name.slice(1)
+  } catch {
+    return url
+  }
+}
+
 export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, onUpdateCheckTime }: Props) {
-  const [checking, setChecking]       = useState(false)
-  const [checkMsg, setCheckMsg]       = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
-  const [editingTime, setEditingTime] = useState(false)
+  const [checking, setChecking]         = useState(false)
+  const [checkMsg, setCheckMsg]         = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
+  const [editingTime, setEditingTime]   = useState(false)
   const [selectedHour, setSelectedHour] = useState(alert.check_time?.substring(0, 2) ?? '09')
 
   const handleCheckNow = async () => {
@@ -46,8 +56,22 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
   const product = alert.products
   const config  = statusConfig[alert.status]
 
-  const priceDiff = product?.current_price != null
-    ? Math.round(((product.current_price - alert.target_price) / alert.target_price) * 100)
+  // Build marketplace prices array (primary + additional)
+  const allPrices = [
+    { label: domainLabel(product?.url ?? ''), price: product?.current_price ?? null, url: product?.url ?? '' },
+    ...(alert.alert_urls ?? []).map(au => ({
+      label: au.marketplace_label || domainLabel(au.url),
+      price: au.current_price,
+      url:   au.url,
+    })),
+  ]
+  const hasMultiple = allPrices.length > 1
+
+  const validPrices = allPrices.map(p => p.price).filter((p): p is number => p != null)
+  const lowestPrice = validPrices.length > 0 ? Math.min(...validPrices) : null
+
+  const priceDiff = lowestPrice != null
+    ? Math.round(((lowestPrice - alert.target_price) / alert.target_price) * 100)
     : null
 
   return (
@@ -66,24 +90,48 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
             {product?.name ?? 'Sin nombre'}
           </h3>
 
-          {/* URL */}
-          <a
-            href={product?.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-gray-400 hover:text-indigo-500 truncate block mb-4 transition-colors"
-          >
-            {product?.url}
-          </a>
+          {/* URL (single marketplace) or marketplace chips (multi) */}
+          {hasMultiple ? (
+            <div className="flex flex-wrap gap-1.5 mb-4 mt-2">
+              {allPrices.map(mp => (
+                <a
+                  key={mp.url}
+                  href={mp.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                    mp.price === lowestPrice && mp.price != null
+                      ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <span className="font-medium">{mp.label}</span>
+                  <span>{mp.price != null ? `€${mp.price.toFixed(2)}` : '—'}</span>
+                  {mp.price === lowestPrice && mp.price != null && (
+                    <span className="font-bold">↓</span>
+                  )}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <a
+              href={product?.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-gray-400 hover:text-indigo-500 truncate block mb-4 transition-colors"
+            >
+              {product?.url}
+            </a>
+          )}
 
-          {/* Prices */}
+          {/* Prices summary */}
           <div className="flex items-end gap-4">
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Precio actual</p>
+              <p className="text-xs text-gray-400 mb-0.5">
+                {hasMultiple ? 'Precio más bajo' : 'Precio actual'}
+              </p>
               <p className="text-lg font-bold text-gray-900">
-                {product?.current_price != null
-                  ? `${product.current_price.toFixed(2)} €`
-                  : '—'}
+                {lowestPrice != null ? `${lowestPrice.toFixed(2)} €` : '—'}
               </p>
             </div>
             <div>
@@ -105,7 +153,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
             )}
           </div>
 
-          {/* Scheduled check time */}
+          {/* Check time */}
           <div className="mt-3 flex items-center gap-2">
             <span className="text-xs text-gray-400">Revisión diaria:</span>
             {editingTime ? (
@@ -175,7 +223,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
 
       </div>
 
-      {/* Resultado de la comprobación manual */}
+      {/* Check result banner */}
       {checkMsg && (
         <div className={`mt-4 rounded-xl px-4 py-2.5 text-xs font-medium ${
           checkMsg.type === 'ok'
@@ -186,7 +234,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
         </div>
       )}
 
-      {/* Triggered message */}
+      {/* Triggered banner */}
       {alert.status === 'triggered' && (
         <div className="mt-4 bg-indigo-50 rounded-xl px-4 py-2.5 text-xs text-indigo-700 font-medium">
           ¡Precio alcanzado! Te hemos enviado un email.

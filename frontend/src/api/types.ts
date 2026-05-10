@@ -14,6 +14,21 @@ export interface Product {
   created_at: string
 }
 
+export interface AlertUrl {
+  id: string
+  alert_id: string
+  url: string
+  marketplace_label: string
+  current_price: number | null
+  last_checked_at: string | null
+  created_at: string
+}
+
+export interface AdditionalUrl {
+  url: string
+  marketplace_label: string
+}
+
 export interface Alert {
   id: string
   user_id: string
@@ -24,6 +39,7 @@ export interface Alert {
   triggered_at: string | null
   created_at: string
   products?: Product
+  alert_urls?: AlertUrl[]
 }
 
 export interface PriceHistory {

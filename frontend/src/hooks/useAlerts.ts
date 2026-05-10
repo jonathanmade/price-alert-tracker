@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../api/supabase'
 import { triggerPriceCheck } from '../api/djangoApi'
-import type { Alert } from '../api/types'
+import type { Alert, AdditionalUrl } from '../api/types'
 
 export function useAlerts() {
   const [alerts, setAlerts] = useState<Alert[]>([])
@@ -10,7 +10,7 @@ export function useAlerts() {
   const fetchAlerts = async () => {
     const { data } = await supabase
       .from('alerts')
-      .select('*, products(*)')
+      .select('*, products(*), alert_urls(*)')
       .order('created_at', { ascending: false })
     setAlerts((data as Alert[]) ?? [])
     setLoading(false)
@@ -22,7 +22,8 @@ export function useAlerts() {
     url: string,
     name: string,
     targetPrice: number,
-    checkTime: string,      // "HH:00:00"
+    checkTime: string,
+    additionalUrls?: AdditionalUrl[],
   ): Promise<{ error: string | null }> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'No autenticado' }
@@ -42,6 +43,12 @@ export function useAlerts() {
       .single()
 
     if (alertError) return { error: alertError.message }
+
+    if (additionalUrls && additionalUrls.length > 0) {
+      await supabase.from('alert_urls').insert(
+        additionalUrls.map(au => ({ alert_id: alert.id, url: au.url, marketplace_label: au.marketplace_label }))
+      )
+    }
 
     await fetchAlerts()
     triggerPriceCheck(alert.id)
