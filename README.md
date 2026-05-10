@@ -61,13 +61,22 @@ Plataforma de alertas de precio para el mercado español. Los usuarios registran
 
 ## Modelo de datos
 
+### Supabase (usuarios y alertas)
 ```sql
-profiles          (id → auth.users, email, credits, created_at)
-products          (id, user_id, name, url, current_price, last_checked_at)
-alerts            (id, user_id, product_id, target_price, status,
-                   check_time TIME, triggered_at, created_at)
-price_history     (id, product_id, price, checked_at)
+profiles            (id → auth.users, email, credits, created_at)
+products            (id, user_id, name, url, current_price, last_checked_at)
+alerts              (id, user_id, product_id, target_price, status,
+                     check_time TIME, triggered_at, created_at)
+price_history       (id, product_id, price, checked_at)
 credit_transactions (id, user_id, amount, reason, created_at)
+```
+
+### Django ORM (catálogo y monetización)
+```
+Marketplace     (name, slug, base_url, affiliate_tag, active)
+Category        (name, slug)
+ReferenceProduct (name, slug, description, image_url, category, active)
+ProductURL      (product, marketplace, url, affiliate_url, current_price, active)
 ```
 
 **Estados de alerta:** `active` → `triggered` | `paused`
@@ -81,8 +90,8 @@ credit_transactions (id, user_id, amount, reason, created_at)
 | # | Módulo | Estado |
 |---|--------|--------|
 | 1 | Roles y permisos (Admin / Gestor / Cliente) | ✅ Completo |
-| 2 | Panel de administrador (CRUD productos, analytics) | 🔜 Siguiente |
-| 3 | Sistema de afiliación y tracking de clics | ⬜ Pendiente |
+| 2 | Panel de administrador (CRUD productos, analytics) | ✅ Completo |
+| 3 | Sistema de afiliación y tracking de clics | 🔜 Siguiente |
 | 4 | Comparador de marketplaces | ⬜ Pendiente |
 | 5 | SEO programático (páginas auto-generadas) | ⬜ Pendiente |
 | 6 | Historial y gráficas de precios | ✅ Completo |
@@ -112,7 +121,11 @@ Los gestores se crean manualmente desde `/admin/` asignando el grupo `content_ma
 | `/dashboard` | Panel de alertas del cliente (React) |
 | `/settings/*` | Cuenta, perfil, billing (React) |
 | `/staff/login/` | Login interno staff (Django template) |
-| `/staff/` | Dashboard staff con stats (Django template) |
+| `/staff/` | Dashboard con stats en tiempo real |
+| `/staff/products/` | Lista de productos de referencia |
+| `/staff/products/new/` | Crear producto con URLs por marketplace |
+| `/staff/products/<id>/edit/` | Editar producto |
+| `/staff/analytics/` | Top productos, usuarios activos, stats 7d |
 | `/admin/` | Django admin completo |
 | `/api/check-price/` | API comprobación manual (JWT required) |
 
@@ -126,7 +139,8 @@ price-alert-tracker/
 │   ├── users/          # Modelo User (AbstractUser + email login)
 │   ├── products/       # Scraper + tarea Celery check_all_prices
 │   ├── alerts/         # Vista check_price_now + notificaciones
-│   └── staff/          # Panel gestor: login, dashboard, mixins
+│   ├── catalog/        # Marketplace, Category, ReferenceProduct, ProductURL
+│   └── staff/          # Panel gestor: login, dashboard, CRUD, analytics, mixins
 ├── config/
 │   ├── settings/
 │   │   ├── base.py
@@ -135,7 +149,15 @@ price-alert-tracker/
 │   ├── celery.py
 │   └── urls.py
 ├── templates/
-│   └── staff/          # base.html, login.html, dashboard.html
+│   └── staff/
+│       ├── base.html         # Sidebar + layout
+│       ├── login.html
+│       ├── dashboard.html
+│       ├── analytics.html
+│       └── products/
+│           ├── list.html
+│           ├── form.html     # Crear y editar
+│           └── detail.html
 ├── frontend/           # React + Vite + Tailwind
 │   └── src/
 │       ├── api/        # supabase.ts, djangoApi.ts, types.ts
@@ -207,12 +229,13 @@ npm run dev
 | `SENDGRID_API_KEY` | API key de SendGrid |
 | `DEFAULT_FROM_EMAIL` | Email remitente |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos (frontend URLs) |
+| `FRONTEND_URL` | URL del frontend React (default: http://localhost:5173) |
 
 ---
 
-## Marketplaces objetivo
+## Marketplaces preconfigurados
 
-España y Cataluña: Amazon.es · PCComponentes · MediaMarkt · El Corte Inglés · Carrefour
+Amazon.es · PCComponentes · MediaMarkt · El Corte Inglés · Carrefour
 
 ---
 
@@ -221,3 +244,5 @@ España y Cataluña: Amazon.es · PCComponentes · MediaMarkt · El Corte Inglé
 - **JWT ES256:** Supabase nuevos proyectos firman con ES256. La verificación usa `PyJWKClient` contra el endpoint JWKS (`/auth/v1/.well-known/jwks.json`), no el JWT secret directamente.
 - **Profiles sin FK directa:** `alerts.user_id` referencia `auth.users`, no `public.profiles`. Las queries a profiles se hacen por separado con el `user_id`.
 - **Celery schedule:** corre cada hora y filtra alertas cuyo `check_time` cae en la hora actual (zona Europe/Madrid).
+- **Tailwind CDN en templates Django:** no usar `@apply` ni `strokeWidth` — solo clases inline y atributo `stroke-width`.
+- **Bloques Django en templates:** los `{% block %}` no pueden anidarse dentro de `{% if %}`. Usar `{% if %}` dentro del bloque.
