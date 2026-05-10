@@ -1,6 +1,89 @@
 {% extends "catalog/base.html" %}
+
 {% block title %}{{ product.name }} · Comparar precio{% endblock %}
-{% block meta_description %}Compara el precio de {{ product.name }} en todos los marketplaces. Encuentra la mejor oferta y crea una alerta de precio gratuita.{% endblock %}
+{% block meta_description %}Compara el precio de {{ product.name }} en Amazon, PCComponentes, MediaMarkt y más. Mejor precio: {% if lowest_price %}€{{ lowest_price|floatformat:2 }}{% else %}consulta las tiendas{% endif %}.{% endblock %}
+
+{% block canonical %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}/producto/{{ product.slug }}/">
+{% endblock %}
+
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ product.name }} · Mejor precio · PriceAlert{% endblock %}
+{% block og_description %}Compara el precio de {{ product.name }}{% if lowest_price %} desde €{{ lowest_price|floatformat:2 }}{% endif %} en todos los marketplaces.{% endblock %}
+{% block og_url %}{{ request.scheme }}://{{ request.get_host }}/producto/{{ product.slug }}/{% endblock %}
+{% block twitter_title %}{{ product.name }} · Mejor precio · PriceAlert{% endblock %}
+{% block twitter_description %}Compara el precio de {{ product.name }}{% if lowest_price %} desde €{{ lowest_price|floatformat:2 }}{% endif %} en todos los marketplaces.{% endblock %}
+
+{% block og_image %}
+{% if product.image_url %}
+<meta property="og:image" content="{{ product.image_url }}">
+<meta name="twitter:image" content="{{ product.image_url }}">
+{% endif %}
+{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  {% if product.description %}"description": "{{ product.description|escapejs }}",{% endif %}
+  {% if product.image_url %}"image": "{{ product.image_url|escapejs }}",{% endif %}
+  "url": "{{ request.scheme }}://{{ request.get_host }}/producto/{{ product.slug }}/",
+  {% if product.category %}"category": "{{ product.category.name|escapejs }}",{% endif %}
+  "offers": [
+    {% for pu in urls %}
+    {
+      "@type": "Offer",
+      "url": "{{ request.scheme }}://{{ request.get_host }}/go/{{ product.slug }}/{{ pu.marketplace.slug }}/",
+      "priceCurrency": "EUR",
+      {% if pu.current_price %}"price": "{{ pu.current_price|floatformat:2 }}",{% endif %}
+      "availability": "https://schema.org/InStock",
+      "seller": {
+        "@type": "Organization",
+        "name": "{{ pu.marketplace.name|escapejs }}"
+      }
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Comparar precios",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/comparar/"
+    }{% if product.category %},
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "{{ product.category.name|escapejs }}",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/comparar/{{ product.category.slug }}/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "{{ product.name|escapejs }}",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/producto/{{ product.slug }}/"
+    }
+    {% else %},
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "{{ product.name|escapejs }}",
+      "item": "{{ request.scheme }}://{{ request.get_host }}/producto/{{ product.slug }}/"
+    }
+    {% endif %}
+  ]
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-6 py-8">
@@ -10,7 +93,7 @@
     <a href="/comparar/" class="hover:text-indigo-600 transition-colors">Inicio</a>
     <span>/</span>
     {% if product.category %}
-    <a href="/comparar/?cat={{ product.category.slug }}" class="hover:text-indigo-600 transition-colors">
+    <a href="/comparar/{{ product.category.slug }}/" class="hover:text-indigo-600 transition-colors">
       {{ product.category.name }}
     </a>
     <span>/</span>
@@ -57,7 +140,7 @@
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-50">
           <h2 class="text-sm font-semibold text-gray-900">Precios por marketplace</h2>
-          <p class="text-xs text-gray-400 mt-0.5">Ordenados de menor a mayor precio · haz clic en "Ver oferta" para ir a la tienda</p>
+          <p class="text-xs text-gray-400 mt-0.5">Ordenados de menor a mayor · los precios se actualizan periódicamente</p>
         </div>
 
         {% if urls %}
@@ -77,7 +160,7 @@
               {% if pu.last_checked %}
               <p class="text-xs text-gray-400">Precio del {{ pu.last_checked|date:"d/m/Y" }}</p>
               {% else %}
-              <p class="text-xs text-gray-400">Sin datos de precio recientes</p>
+              <p class="text-xs text-gray-400">Pendiente de actualización</p>
               {% endif %}
             </div>
 
@@ -85,12 +168,12 @@
               {% if pu.current_price %}
               <p class="text-xl font-bold text-gray-900">€{{ pu.current_price|floatformat:2 }}</p>
               {% else %}
-              <p class="text-sm text-gray-300 italic">—</p>
+              <p class="text-sm text-gray-300">—</p>
               {% endif %}
 
               <a href="/go/{{ product.slug }}/{{ pu.marketplace.slug }}/"
                  target="_blank"
-                 rel="noopener noreferrer"
+                 rel="noopener noreferrer sponsored"
                  class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
                 Ver oferta →
               </a>
@@ -111,7 +194,7 @@
       <div class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <p class="text-sm font-semibold text-indigo-900">¿Quieres que te avisemos si baja más?</p>
-          <p class="text-xs text-indigo-500 mt-0.5">Crea una alerta de precio gratuita. Te mandamos un email cuando llegue a tu objetivo.</p>
+          <p class="text-xs text-indigo-500 mt-0.5">Crea una alerta gratuita. Te mandamos un email cuando llegue a tu precio objetivo.</p>
         </div>
         <a href="{{ FRONTEND_URL }}"
            class="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5 py-2.5 rounded-lg transition-colors">
@@ -119,9 +202,10 @@
         </a>
       </div>
 
-      <!-- Info note -->
-      <p class="text-xs text-gray-400 text-center">
-        Los precios se actualizan periódicamente. PriceAlert puede percibir una comisión por los enlaces de afiliado sin coste adicional para ti.
+      <!-- Disclaimer -->
+      <p class="text-xs text-gray-400 text-center leading-relaxed">
+        Los precios se actualizan periódicamente y pueden variar. PriceAlert puede percibir una comisión por los
+        enlaces de afiliado sin coste adicional para el usuario.
       </p>
 
     </div>

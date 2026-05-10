@@ -1,14 +1,37 @@
 {% extends "catalog/base.html" %}
-{% block title %}Comparador de precios{% endblock %}
+
+{% block title %}{% if category %}{{ category.name }} — Comparar precios{% else %}Comparador de precios{% endif %}{% endblock %}
+{% block meta_description %}{% if category %}Compara precios de {{ category.name }} en Amazon, PCComponentes, MediaMarkt y más.{% else %}Compara precios en todos los marketplaces. Encuentra la mejor oferta y crea alertas gratuitas de bajada de precio.{% endif %}{% endblock %}
+
+{% block canonical %}
+<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% if category %}/comparar/{{ category.slug }}/{% else %}/comparar/{% endif %}">
+{% endblock %}
+
+{% block og_title %}{% if category %}{{ category.name }} · Comparar precios · PriceAlert{% else %}Comparador de precios · PriceAlert{% endif %}{% endblock %}
+{% block og_description %}{% if category %}Compara precios de {{ category.name }} en Amazon, PCComponentes, MediaMarkt y más.{% else %}Compara precios en todos los marketplaces y ahorra dinero.{% endif %}{% endblock %}
+{% block og_url %}{{ request.scheme }}://{{ request.get_host }}{% if category %}/comparar/{{ category.slug }}/{% else %}/comparar/{% endif %}{% endblock %}
+{% block twitter_title %}{% if category %}{{ category.name }} · Comparar precios · PriceAlert{% else %}Comparador de precios · PriceAlert{% endif %}{% endblock %}
+{% block twitter_description %}{% if category %}Compara precios de {{ category.name }} en todos los marketplaces.{% else %}Compara precios y ahorra dinero con PriceAlert.{% endif %}{% endblock %}
 
 {% block content %}
 
 <!-- Hero -->
 <div class="bg-white border-b border-gray-100">
   <div class="max-w-6xl mx-auto px-6 py-12">
+    {% if category %}
+    <nav class="text-xs text-gray-400 mb-4 flex items-center gap-2">
+      <a href="/comparar/" class="hover:text-indigo-600 transition-colors">Inicio</a>
+      <span>/</span>
+      <span class="text-gray-600">{{ category.name }}</span>
+    </nav>
+    <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-2">{{ category.name }}</p>
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Comparar precios · {{ category.name }}</h1>
+    <p class="text-gray-500 text-sm">Los mejores precios de {{ category.name }} en Amazon, PCComponentes, MediaMarkt y más.</p>
+    {% else %}
     <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-2">Comparador de precios</p>
     <h1 class="text-3xl font-bold text-gray-900 mb-2">Encuentra el mejor precio</h1>
     <p class="text-gray-500 text-sm">Comparamos precios en Amazon, PCComponentes, MediaMarkt y más para que no pagues de más.</p>
+    {% endif %}
   </div>
 </div>
 
@@ -24,7 +47,7 @@
       Todos
     </a>
     {% for cat in categories %}
-    <a href="/comparar/?cat={{ cat.slug }}"
+    <a href="/comparar/{{ cat.slug }}/"
        class="px-4 py-1.5 rounded-full text-sm font-medium border transition-colors
               {% if selected_cat == cat.slug %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600{% endif %}">
       {{ cat.name }}
@@ -44,7 +67,8 @@
       {% if product.image_url %}
       <div class="bg-gray-50 overflow-hidden aspect-square">
         <img src="{{ product.image_url }}" alt="{{ product.name }}"
-             class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300" />
+             class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+             loading="lazy" />
       </div>
       {% else %}
       <div class="bg-gray-50 aspect-square flex items-center justify-center">
@@ -59,7 +83,7 @@
         {% if product.category %}
         <p class="text-xs text-indigo-500 font-semibold mb-1">{{ product.category.name }}</p>
         {% endif %}
-        <h2 class="text-sm font-semibold text-gray-900 leading-snug mb-3 flex-1 line-clamp-2">{{ product.name }}</h2>
+        <h2 class="text-sm font-semibold text-gray-900 leading-snug mb-3 flex-1">{{ product.name }}</h2>
 
         <div class="flex items-end justify-between mt-auto">
           <div>
