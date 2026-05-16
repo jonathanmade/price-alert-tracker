@@ -325,6 +325,7 @@ Ejecutar en orden en **SQL Editor** del proyecto:
 | `004_alert_urls.sql` | Multi-marketplace (alert_urls) |
 | `005_scrape_status.sql` | Estado del scraper por producto (last_scrape_status, last_scrape_error) |
 | `006_product_counters.sql` | Contadores históricos (scrape_ok_count, scrape_error_count, outbound_clicks) |
+| `007_security_rls.sql` | Auditoría RLS + función atómica `deduct_credit` (evita race condition) |
 
 ---
 
@@ -346,3 +347,21 @@ Amazon.es · PCComponentes · MediaMarkt · El Corte Inglés · Carrefour
 - **Salud del scraper:** cada intento de scraping actualiza `last_scrape_status` (`ok`/`error`) y contadores históricos en `products`. Visible en `/staff/analytics/` con tasa de éxito, tasa de rechazo, clics de precio y clics de salida por producto.
 - **Precio actual en alertas:** el precio scrapeado al crear una alerta se guarda en `products.current_price` y se muestra inmediatamente en el dashboard sin esperar el primer ciclo de Celery.
 - **Deploy previsto:** nginx como reverse proxy en pricearadar.com — mismo dominio para React (estáticos) y Django (API + staff).
+- **Créditos atómicos:** `deduct_credit` es una función PostgreSQL (RPC Supabase) que hace UPDATE condicional en una sola query, eliminando la race condition READ→UPDATE en entornos con múltiples workers Celery.
+
+---
+
+## Seguridad
+
+| Área | Estado |
+|------|--------|
+| Secrets en código fuente | ✅ Ninguno — todo vía `env()` / `import.meta.env` |
+| `.env` en git | ✅ Ignorado por `.gitignore` |
+| RLS en todas las tablas Supabase | ✅ Activo |
+| Escritura en `price_history` / `credit_transactions` | ✅ Solo SERVICE ROLE (sin políticas INSERT para clientes) |
+| Créditos atómicos | ✅ RPC `deduct_credit` — UPDATE condicional sin race condition |
+| HTTPS en producción | ✅ `SECURE_SSL_REDIRECT`, HSTS 1 año con preload |
+| Cookies seguras | ✅ `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` |
+| CORS en producción | ✅ Solo `https://priceradar.com` |
+| Clickjacking | ✅ `X_FRAME_OPTIONS = DENY` |
+| Content-Type sniffing | ✅ `SECURE_CONTENT_TYPE_NOSNIFF` |

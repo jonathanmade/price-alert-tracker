@@ -18,11 +18,10 @@ def _get_supabase():
 
 
 def _deduct_credit(supabase, user_id: str) -> bool:
-    result = supabase.table("profiles").select("credits").eq("id", user_id).single().execute()
-    credits = result.data.get("credits", 0) if result.data else 0
-    if credits <= 0:
-        return False
-    supabase.table("profiles").update({"credits": credits - 1}).eq("id", user_id).execute()
+    # Operación atómica: UPDATE condicional en una sola query (evita race condition)
+    result = supabase.rpc("deduct_credit", {"p_user_id": user_id}).execute()
+    if result.data is None:
+        return False  # sin créditos
     supabase.table("credit_transactions").insert({
         "user_id": user_id,
         "amount": -1,

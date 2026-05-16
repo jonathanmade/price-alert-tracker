@@ -3,10 +3,16 @@ __pycache__/
 *.pyc
 *.pyo
 .env
+.env.local
+.env.production
 db.sqlite3
 staticfiles/
 *.log
+*.key
+*.pem
 .DS_Store
 frontend/node_modules/
 frontend/.env
+frontend/.env.local
+frontend/.env.production
 frontend/dist/
