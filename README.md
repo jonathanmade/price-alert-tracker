@@ -117,7 +117,7 @@ TelegramLinkToken(user_id UUID, token, created_at)            ← TTL 15 min
 | 11 | Analytics del usuario | ✅ Completo |
 | 12 | Scraping con Playwright (fallback Amazon) + salud del scraper | ✅ Completo |
 
-**Pendiente:** configuración producción (nginx + Gunicorn) · deploy en priceradar.com · tests unitarios · rate limiting
+**Estado:** tests unitarios ✅ · rate limiting ✅ · seguridad RLS ✅ · configuración producción ✅
 
 ---
 
@@ -141,16 +141,15 @@ TelegramLinkToken(user_id UUID, token, created_at)            ← TTL 15 min
 | 🟠 | `requirements.txt` | Añadidos paquetes faltantes: `djangorestframework`, `django-cors-headers`, `PyJWT`, `cryptography`, `gunicorn`, `whitenoise` |
 | 🔵 | Renombrado global | `PriceAlert` → `PriceRadar` en 15 archivos (Python, templates, TSX, SQL, config) |
 
-### Bugs pendientes (no bloqueantes hoy)
-| Prioridad | Archivo | Descripción |
-|-----------|---------|-------------|
-| 🟠 P1 | `.env` | `CORS_ALLOWED_ORIGINS` no definida → usa default 5173 pero Vite corre en 3000. Añadir `CORS_ALLOWED_ORIGINS=http://localhost:3000` al `.env` |
-| 🟠 P1 | `.env` | Variables `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_NAME`, `TELEGRAM_WEBHOOK_SECRET`, `FRONTEND_URL` no están en el `.env` — el bot no funcionará sin ellas |
-| 🟡 P2 | `tasks.py:_deduct_credit` | Race condition: READ→UPDATE no atómico; en producción con workers paralelos puede perder créditos |
-| 🟡 P2 | API endpoints | Sin rate limiting (`/api/check-price/`, `/api/scrape-metadata/`) |
-| 🟡 P2 | Staff views | Queries a Supabase sin try/catch; si Supabase cae, el panel devuelve 500 |
-| 🟡 P2 | Codebase | Cero tests unitarios ni de integración |
-| 🔵 P3 | `.env.example` | No incluía `FRONTEND_URL`, `TELEGRAM_*` como referencias — añadir |
+### Bugs corregidos en sesiones posteriores
+| Prioridad | Archivo | Descripción | Estado |
+|-----------|---------|-------------|--------|
+| 🟠 P1 | `.env` | `CORS_ALLOWED_ORIGINS` y variables Telegram añadidas | ✅ |
+| 🟡 P2 | `tasks.py:_deduct_credit` | Race condition → RPC PostgreSQL atómica `deduct_credit` | ✅ |
+| 🟡 P2 | API endpoints | Rate limiting con `django-ratelimit` (JWT key) | ✅ |
+| 🟡 P2 | Staff views | try/catch + template `staff/error.html` con 503 | ✅ |
+| 🟡 P2 | Codebase | Tests unitarios (27) — `apps/products/tests.py`, `apps/alerts/tests.py` | ✅ |
+| 🔵 P3 | `.env.example` | Variables `FRONTEND_URL`, `TELEGRAM_*` añadidas | ✅ |
 
 ### Migraciones Supabase
 Las 4 migraciones deben ejecutarse manualmente en Supabase SQL Editor (ver sección más abajo).
@@ -326,6 +325,106 @@ Ejecutar en orden en **SQL Editor** del proyecto:
 | `005_scrape_status.sql` | Estado del scraper por producto (last_scrape_status, last_scrape_error) |
 | `006_product_counters.sql` | Contadores históricos (scrape_ok_count, scrape_error_count, outbound_clicks) |
 | `007_security_rls.sql` | **Snapshot completo de seguridad:** REVOKE/GRANT por rol, todas las políticas RLS de todas las tablas (idempotente), función atómica `deduct_credit` |
+
+---
+
+## Deploy en producción (VPS + nginx)
+
+### Requisitos del servidor
+- Ubuntu 22.04 / Debian 12
+- Python 3.11, Node 18
+- nginx, certbot
+- Redis (`sudo apt install redis-server`)
+
+### 1. Clonar y preparar entorno
+
+```bash
+git clone https://github.com/tu-usuario/price-alert-tracker.git /var/www/priceradar
+cd /var/www/priceradar
+
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+playwright install chromium          # necesario para scraping Amazon
+```
+
+### 2. Variables de entorno
+
+```bash
+cp .env.example .env
+nano .env                            # completar todas las variables
+```
+
+Asegúrate de que `DJANGO_SETTINGS_MODULE=config.settings.production` esté establecido en el entorno o en el comando de arranque.
+
+### 3. Build del frontend
+
+```bash
+cd frontend
+npm ci
+npm run build                        # genera frontend/dist/
+cd ..
+```
+
+### 4. Estáticos y migraciones Django
+
+```bash
+DJANGO_SETTINGS_MODULE=config.settings.production \
+  venv/bin/python manage.py collectstatic --noinput
+DJANGO_SETTINGS_MODULE=config.settings.production \
+  venv/bin/python manage.py migrate
+```
+
+### 5. Servicios systemd
+
+Crear `/etc/systemd/system/priceradar-web.service`:
+
+```ini
+[Unit]
+Description=PriceRadar Gunicorn
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/priceradar
+EnvironmentFile=/var/www/priceradar/.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+ExecStart=/var/www/priceradar/venv/bin/gunicorn config.wsgi:application \
+          --bind 127.0.0.1:8000 --workers 2 --timeout 120
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Crear `/etc/systemd/system/priceradar-worker.service` (igual pero `ExecStart` → `celery -A config worker -l info`).
+
+Crear `/etc/systemd/system/priceradar-beat.service` (igual pero `ExecStart` → `celery -A config beat -l info`).
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now priceradar-web priceradar-worker priceradar-beat
+```
+
+### 6. nginx
+
+```bash
+sudo cp nginx.conf.example /etc/nginx/sites-available/priceradar
+sudo ln -s /etc/nginx/sites-available/priceradar /etc/nginx/sites-enabled/
+sudo certbot --nginx -d priceradar.com -d www.priceradar.com
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 7. Migraciones Supabase
+
+Ejecutar las 7 migraciones en orden en el **SQL Editor** de Supabase (ver sección más abajo).
+
+### Verificación rápida
+
+```bash
+curl https://priceradar.com/staff/login/    # → 200 HTML
+curl https://priceradar.com/api/check-price/ -X POST  # → 401 JSON
+```
 
 ---
 

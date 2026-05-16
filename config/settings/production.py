@@ -7,6 +7,17 @@ DEBUG = False
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
+# Static files — whitenoise serves them directly from Gunicorn (no nginx needed for static)
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    *MIDDLEWARE[1:],
+]
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
 # SECRET_KEY heredada de base.py — viene siempre de env("SECRET_KEY")
 
 # CORS: solo el dominio de producción (sobrescribe base.py)

@@ -79,16 +79,30 @@ GENERIC_SELECTORS = [
 
 def _extract_price(text: str) -> float | None:
     text = text.strip().replace("\xa0", " ")
-    match = re.search(r"[\d]+[.,][\d]{2}", text)
-    if not match:
-        match = re.search(r"[\d]+", text)
-    if not match:
-        return None
-    raw = match.group().replace(".", "").replace(",", ".")
-    try:
-        return float(raw)
-    except ValueError:
-        return None
+
+    # European format with thousands separator: 1.299,99 or 1 299,99
+    m = re.search(r"\d{1,3}(?:[.\s]\d{3})+,\d{1,2}", text)
+    if m:
+        return float(re.sub(r"[.\s]", "", m.group()).replace(",", "."))
+
+    # European decimal only: 29,99
+    m = re.search(r"\d+,\d{1,2}", text)
+    if m:
+        return float(m.group().replace(",", "."))
+
+    # English format with thousands separator: 1,299.99
+    m = re.search(r"\d{1,3}(?:,\d{3})+\.\d{1,2}", text)
+    if m:
+        return float(m.group().replace(",", ""))
+
+    # Dot decimal: 29.99
+    m = re.search(r"\d+\.\d{1,2}", text)
+    if m:
+        return float(m.group())
+
+    # Integer fallback: 30
+    m = re.search(r"\d+", text)
+    return float(m.group()) if m else None
 
 
 def _get_domain(url: str) -> str:
