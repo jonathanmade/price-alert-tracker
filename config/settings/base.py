@@ -82,6 +82,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Cache — Redis (compartido con Celery; necesario para rate limiting)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("REDIS_URL", default="redis://localhost:6379/0"),
+    }
+}
+
 # Celery
 CELERY_BROKER_URL = env("REDIS_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://localhost:6379/0")
@@ -110,9 +118,9 @@ SUPABASE_JWT_SECRET = env("SUPABASE_JWT_SECRET")
 
 # SendGrid
 SENDGRID_API_KEY = env("SENDGRID_API_KEY", default="")
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@pricealert.com")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@priceradar.com")
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN    = env("TELEGRAM_BOT_TOKEN", default="")
-TELEGRAM_BOT_NAME     = env("TELEGRAM_BOT_NAME", default="")       # sin @, ej: PriceAlertBot
+TELEGRAM_BOT_NAME     = env("TELEGRAM_BOT_NAME", default="")       # sin @, ej: PriceRadarBot
 TELEGRAM_WEBHOOK_SECRET = env("TELEGRAM_WEBHOOK_SECRET", default="")

@@ -1,6 +1,8 @@
+import logging
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
+from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.utils.text import slugify
@@ -8,6 +10,15 @@ from supabase import create_client
 
 from .mixins import StaffAccessMixin, AdminOnlyMixin, is_staff_user
 from apps.catalog.models import ReferenceProduct, ProductURL, Marketplace, Category, AffiliateClick, Coupon
+
+logger = logging.getLogger(__name__)
+
+
+def _supabase_error_response(request, view_name: str, exc: Exception):
+    logger.error("Error Supabase en %s: %s", view_name, exc, exc_info=True)
+    return render(request, "staff/error.html", {
+        "message": "No se pudo conectar con Supabase. Inténtalo de nuevo en unos segundos.",
+    }, status=503)
 
 
 def _supabase():
@@ -44,21 +55,22 @@ class StaffLogoutView(View):
 
 class DashboardView(StaffAccessMixin, View):
     def get(self, request):
-        sb = _supabase()
-
-        products_count   = len(sb.table("products").select("id").execute().data or [])
-        active_alerts    = len(sb.table("alerts").select("id").eq("status", "active").execute().data or [])
-        triggered_alerts = len(sb.table("alerts").select("id").eq("status", "triggered").execute().data or [])
-        total_users      = len(sb.table("profiles").select("id").execute().data or [])
-
-        recent_checks = (
-            sb.table("price_history")
-            .select("price, checked_at, products(name, url)")
-            .order("checked_at", desc=True)
-            .limit(8)
-            .execute()
-            .data or []
-        )
+        try:
+            sb = _supabase()
+            products_count   = len(sb.table("products").select("id").execute().data or [])
+            active_alerts    = len(sb.table("alerts").select("id").eq("status", "active").execute().data or [])
+            triggered_alerts = len(sb.table("alerts").select("id").eq("status", "triggered").execute().data or [])
+            total_users      = len(sb.table("profiles").select("id").execute().data or [])
+            recent_checks    = (
+                sb.table("price_history")
+                .select("price, checked_at, products(name, url)")
+                .order("checked_at", desc=True)
+                .limit(8)
+                .execute()
+                .data or []
+            )
+        except Exception as exc:
+            return _supabase_error_response(request, "DashboardView", exc)
 
         ref_products = ReferenceProduct.objects.count()
 
@@ -205,6 +217,12 @@ class ProductDetailView(StaffAccessMixin, View):
 
 class AnalyticsView(StaffAccessMixin, View):
     def get(self, request):
+        try:
+            return self._get(request)
+        except Exception as exc:
+            return _supabase_error_response(request, "AnalyticsView", exc)
+
+    def _get(self, request):
         sb = _supabase()
 
         # Productos más seguidos — enriquecido con métricas de scraping y clics

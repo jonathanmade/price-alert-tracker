@@ -3,7 +3,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.conf import settings
+from django_ratelimit.decorators import ratelimit
 import json
+import jwt as pyjwt
 
 from apps.users.supabase_auth import verify_supabase_token
 from apps.products.scraper import scrape_price, scrape_metadata
@@ -15,9 +17,24 @@ def _get_supabase():
     return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
 
 
+def _jwt_user_key(group, request):
+    """Extrae el user_id del JWT como clave de rate limit (sin re-verificar firma)."""
+    auth = request.META.get("HTTP_AUTHORIZATION", "")
+    if auth.startswith("Bearer "):
+        try:
+            payload = pyjwt.decode(auth[7:], options={"verify_signature": False})
+            return payload.get("sub", "anon")
+        except Exception:
+            pass
+    return request.META.get("REMOTE_ADDR", "anon")
+
+
 @csrf_exempt
 @require_POST
+@ratelimit(key=_jwt_user_key, rate="10/m", block=False)
 def check_price_now(request):
+    if getattr(request, "limited", False):
+        return JsonResponse({"error": "Demasiadas peticiones. Espera un minuto."}, status=429)
     payload = verify_supabase_token(request)
     if not payload:
         return JsonResponse({"error": "No autorizado"}, status=401)
@@ -153,7 +170,10 @@ def check_price_now(request):
 
 @csrf_exempt
 @require_POST
+@ratelimit(key="ip", rate="20/m", block=False)
 def scrape_metadata_view(request):
+    if getattr(request, "limited", False):
+        return JsonResponse({"error": "Demasiadas peticiones. Espera un minuto."}, status=429)
     payload = verify_supabase_token(request)
     if not payload:
         return JsonResponse({"error": "No autorizado"}, status=401)
