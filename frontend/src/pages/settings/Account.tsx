@@ -3,7 +3,7 @@ import { supabase } from '../../api/supabase'
 
 export default function Account() {
   const [email, setEmail] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
+  const [_currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)

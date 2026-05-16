@@ -2,6 +2,7 @@ import {
   ResponsiveContainer, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from 'recharts'
+import type { ValueType } from 'recharts/types/component/DefaultTooltipContent'
 import type { PriceHistory } from '../../api/types'
 
 interface Props {
@@ -59,7 +60,7 @@ export default function PriceChart({ history, targetPrice }: Props) {
           width={72}
         />
         <Tooltip
-          formatter={(v: number) => [`${v.toFixed(2)} €`, 'Precio']}
+          formatter={(v: ValueType | undefined) => v !== undefined ? [formatPrice(v as number), 'Precio'] : ['', '']}
           contentStyle={{ borderRadius: 8, border: '1px solid #E5E7EB', fontSize: 12 }}
         />
         <ReferenceLine

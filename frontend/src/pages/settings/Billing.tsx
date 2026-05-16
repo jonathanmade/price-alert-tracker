@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../api/supabase'
-import type { PriceHistory } from '../../api/types'
 
 interface Transaction {
   id: string
