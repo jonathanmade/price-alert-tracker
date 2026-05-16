@@ -325,7 +325,7 @@ Ejecutar en orden en **SQL Editor** del proyecto:
 | `004_alert_urls.sql` | Multi-marketplace (alert_urls) |
 | `005_scrape_status.sql` | Estado del scraper por producto (last_scrape_status, last_scrape_error) |
 | `006_product_counters.sql` | Contadores históricos (scrape_ok_count, scrape_error_count, outbound_clicks) |
-| `007_security_rls.sql` | Auditoría RLS + función atómica `deduct_credit` (evita race condition) |
+| `007_security_rls.sql` | **Snapshot completo de seguridad:** REVOKE/GRANT por rol, todas las políticas RLS de todas las tablas (idempotente), función atómica `deduct_credit` |
 
 ---
 
@@ -353,13 +353,28 @@ Amazon.es · PCComponentes · MediaMarkt · El Corte Inglés · Carrefour
 
 ## Seguridad
 
+### RLS — Estado por tabla
+
+| Tabla | RLS | anon | authenticated | service_role |
+|-------|-----|------|---------------|--------------|
+| `profiles` | ✅ | Sin acceso | SELECT propio, UPDATE propio | Todo |
+| `products` | ✅ | Sin acceso | CRUD propio (`user_id`) | Todo |
+| `alerts` | ✅ | Sin acceso | CRUD propio (`user_id`) | Todo |
+| `alert_urls` | ✅ | Sin acceso | CRUD via alertas propias | Todo |
+| `price_history` | ✅ | Sin acceso | SELECT productos propios | Todo |
+| `credit_transactions` | ✅ | Sin acceso | SELECT propio | Todo |
+
+> `price_history` y `credit_transactions` no tienen políticas INSERT/UPDATE/DELETE para clientes — escritura exclusiva del backend (SERVICE ROLE KEY).
+
+### Checklist de seguridad
+
 | Área | Estado |
 |------|--------|
 | Secrets en código fuente | ✅ Ninguno — todo vía `env()` / `import.meta.env` |
 | `.env` en git | ✅ Ignorado por `.gitignore` |
-| RLS en todas las tablas Supabase | ✅ Activo |
-| Escritura en `price_history` / `credit_transactions` | ✅ Solo SERVICE ROLE (sin políticas INSERT para clientes) |
-| Créditos atómicos | ✅ RPC `deduct_credit` — UPDATE condicional sin race condition |
+| RLS en todas las tablas Supabase | ✅ Activo y documentado en `007_security_rls.sql` |
+| REVOKE/GRANT explícitos por rol | ✅ `anon` sin acceso, `authenticated` solo lectura en tablas protegidas |
+| Créditos atómicos | ✅ RPC `deduct_credit` — UPDATE condicional, sin race condition |
 | HTTPS en producción | ✅ `SECURE_SSL_REDIRECT`, HSTS 1 año con preload |
 | Cookies seguras | ✅ `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` |
 | CORS en producción | ✅ Solo `https://priceradar.com` |
