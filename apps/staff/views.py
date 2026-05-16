@@ -207,13 +207,45 @@ class AnalyticsView(StaffAccessMixin, View):
     def get(self, request):
         sb = _supabase()
 
-        # Productos más seguidos (agrupa por URL)
-        alerts_data = sb.table("alerts").select("products(name, url)").eq("status", "active").execute().data or []
-        from collections import Counter
-        name_counts = Counter(
-            a["products"]["name"] for a in alerts_data if a.get("products")
-        )
-        top_products = [{"name": k, "count": v} for k, v in name_counts.most_common(10)]
+        # Productos más seguidos — enriquecido con métricas de scraping y clics
+        from collections import Counter, defaultdict
+        alerts_data = sb.table("alerts").select(
+            "products(id, name, url, scrape_ok_count, scrape_error_count, outbound_clicks)"
+        ).eq("status", "active").execute().data or []
+
+        product_map: dict = {}
+        for a in alerts_data:
+            p = a.get("products")
+            if not p:
+                continue
+            pid = p["id"]
+            if pid not in product_map:
+                product_map[pid] = {
+                    "id":                 pid,
+                    "name":               p["name"],
+                    "url":                p["url"],
+                    "scrape_ok_count":    p.get("scrape_ok_count") or 0,
+                    "scrape_error_count": p.get("scrape_error_count") or 0,
+                    "outbound_clicks":    p.get("outbound_clicks") or 0,
+                    "alert_count":        0,
+                }
+            product_map[pid]["alert_count"] += 1
+
+        # Clics de precio: entradas en price_history por producto
+        product_ids = list(product_map.keys())
+        if product_ids:
+            ph_rows = sb.table("price_history").select("product_id").in_("product_id", product_ids).execute().data or []
+            ph_counts = Counter(r["product_id"] for r in ph_rows)
+        else:
+            ph_counts = Counter()
+
+        top_products_list = sorted(product_map.values(), key=lambda x: x["alert_count"], reverse=True)[:10]
+        for p in top_products_list:
+            total = p["scrape_ok_count"] + p["scrape_error_count"]
+            p["price_checks"]  = ph_counts.get(p["id"], 0)
+            p["scrape_ok_pct"] = round(p["scrape_ok_count"] / total * 100) if total else None
+            p["scrape_err_pct"] = round(p["scrape_error_count"] / total * 100) if total else None
+        top_products = top_products_list
 
         # Comprobaciones últimas 7 días
         from datetime import datetime, timedelta, timezone
@@ -222,12 +254,18 @@ class AnalyticsView(StaffAccessMixin, View):
             sb.table("price_history").select("id").gte("checked_at", since).execute().data or []
         )
 
-        # Usuarios con más alertas
-        users_data = sb.table("alerts").select("user_id, profiles(email)").execute().data or []
-        user_counts = Counter(
-            a["profiles"]["email"] for a in users_data if a.get("profiles")
-        )
-        top_users = [{"email": k, "count": v} for k, v in user_counts.most_common(5)]
+        # Usuarios con más alertas (alerts no tiene FK directa a profiles)
+        users_data = sb.table("alerts").select("user_id").execute().data or []
+        user_id_counts = Counter(a["user_id"] for a in users_data if a.get("user_id"))
+        top_user_ids = [uid for uid, _ in user_id_counts.most_common(5)]
+        profiles_data = {}
+        if top_user_ids:
+            rows = sb.table("profiles").select("id, email").in_("id", top_user_ids).execute().data or []
+            profiles_data = {r["id"]: r["email"] for r in rows}
+        top_users = [
+            {"email": profiles_data.get(uid, uid), "count": cnt}
+            for uid, cnt in user_id_counts.most_common(5)
+        ]
 
         mp_stats = []
         for mp in Marketplace.objects.filter(active=True):
@@ -252,14 +290,29 @@ class AnalyticsView(StaffAccessMixin, View):
             .order_by("-total_clicks")[:10]
         )
 
+        # Scraper health
+        all_products = sb.table("products").select(
+            "id, name, url, last_scrape_status, last_scrape_error, last_checked_at"
+        ).not_.is_("last_scrape_status", "null").execute().data or []
+
+        scrape_ok    = [p for p in all_products if p["last_scrape_status"] == "ok"]
+        scrape_error = [p for p in all_products if p["last_scrape_status"] == "error"]
+        total_scraped = len(all_products)
+        scrape_ok_pct = round(len(scrape_ok) / total_scraped * 100) if total_scraped else 0
+
         return render(request, "staff/analytics.html", {
-            "top_products":  top_products,
-            "top_users":     top_users,
-            "mp_stats":      mp_stats,
-            "checks_7d":     checks_7d,
-            "clicks_total":  clicks_total,
-            "clicks_7d":     clicks_7d,
-            "top_clicked":   top_clicked,
+            "top_products":   top_products,
+            "top_users":      top_users,
+            "mp_stats":       mp_stats,
+            "checks_7d":      checks_7d,
+            "clicks_total":   clicks_total,
+            "clicks_7d":      clicks_7d,
+            "top_clicked":    top_clicked,
+            "scrape_ok":      len(scrape_ok),
+            "scrape_error":   len(scrape_error),
+            "scrape_ok_pct":  scrape_ok_pct,
+            "total_scraped":  total_scraped,
+            "failed_products": sorted(scrape_error, key=lambda p: p.get("last_checked_at") or "", reverse=True)[:20],
         })
 
 

@@ -10,6 +10,7 @@ interface Props {
     targetPrice: number,
     checkTime: string,
     additionalUrls?: AdditionalUrl[],
+    currentPrice?: number | null,
   ) => Promise<{ error: string | null }>
 }
 
@@ -51,9 +52,6 @@ export default function AlertModal({ onClose, onCreate }: Props) {
     if (data.name) {
       setMeta(data)
       if (!name) setName(data.name)
-      if (!price && data.price) {
-        setPrice(String(Math.floor(data.price * 0.9 * 100) / 100))
-      }
       setMetaStatus('done')
     } else {
       setMetaStatus('failed')
@@ -105,7 +103,7 @@ export default function AlertModal({ onClose, onCreate }: Props) {
       .filter(u => u.url.trim())
       .map(u => ({ url: u.url.trim(), marketplace_label: domainLabel(u.url) }))
 
-    const { error } = await onCreate(url, name || url, targetPrice, checkTime, additionalUrls)
+    const { error } = await onCreate(url, name || url, targetPrice, checkTime, additionalUrls, meta?.price ?? null)
     setLoading(false)
     if (error) { setError(error); return }
     onClose()
@@ -241,9 +239,34 @@ export default function AlertModal({ onClose, onCreate }: Props) {
             />
           </div>
 
+          {/* Current price display */}
+          {meta?.price != null && (
+            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl border border-gray-100">
+              <div>
+                <p className="text-xs text-gray-400 mb-0.5">Precio actual</p>
+                <p className="text-xl font-bold text-gray-900">€{meta.price.toFixed(2)}</p>
+              </div>
+              {price && !isNaN(parseFloat(price)) && parseFloat(price) > 0 && (() => {
+                const diff = meta.price! - parseFloat(price)
+                const pct  = Math.round((diff / meta.price!) * 100)
+                return (
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400 mb-0.5">Diferencia</p>
+                    <p className={`text-base font-bold ${diff > 0 ? 'text-green-600' : 'text-orange-500'}`}>
+                      {diff > 0 ? '-' : '+'}€{Math.abs(diff).toFixed(2)}
+                    </p>
+                    <p className={`text-xs font-medium ${diff > 0 ? 'text-green-500' : 'text-orange-400'}`}>
+                      {diff > 0 ? `${pct}% por debajo` : `${Math.abs(pct)}% por encima`}
+                    </p>
+                  </div>
+                )
+              })()}
+            </div>
+          )}
+
           {/* Target price */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Precio objetivo (€)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mi precio objetivo (€)</label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
               <input
@@ -258,9 +281,7 @@ export default function AlertModal({ onClose, onCreate }: Props) {
               />
             </div>
             <p className="text-xs text-gray-400 mt-1">
-              {meta?.price != null
-                ? <>Precio actual en {domainLabel(url)}: €{meta.price.toFixed(2)} · Te avisamos cuando cualquier tienda baje de tu objetivo.</>
-                : 'Te avisamos cuando el precio baje de esta cantidad en cualquiera de las tiendas.'}
+              Te avisamos cuando cualquier tienda baje de este precio.
             </p>
           </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Alert } from '../../api/types'
+import { trackOutboundClick } from '../../api/djangoApi'
 
 interface Props {
   alert: Alert
@@ -99,6 +100,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
                   href={mp.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => product?.id && trackOutboundClick(product.id)}
                   className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors ${
                     mp.price === lowestPrice && mp.price != null
                       ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
@@ -118,6 +120,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
               href={product?.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => product?.id && trackOutboundClick(product.id)}
               className="text-xs text-gray-400 hover:text-indigo-500 truncate block mb-4 transition-colors"
             >
               {product?.url}

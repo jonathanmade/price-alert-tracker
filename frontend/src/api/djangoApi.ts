@@ -82,6 +82,20 @@ export async function scrapeMetadata(url: string): Promise<ProductMetadata> {
   }
 }
 
+// ── Outbound click tracking ───────────────────────────────────────────────────
+
+export async function trackOutboundClick(productId: string): Promise<void> {
+  try {
+    await fetch(`${BASE_URL}/api/track-outbound/`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify({ product_id: productId }),
+    })
+  } catch {
+    // fire-and-forget: never block the user
+  }
+}
+
 // ── Price check ───────────────────────────────────────────────────────────────
 
 export async function triggerPriceCheck(alertId: string): Promise<CheckResult> {

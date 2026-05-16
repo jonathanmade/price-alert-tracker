@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import path, include
 
-from apps.alerts.views import check_price_now, scrape_metadata_view
+from apps.alerts.views import check_price_now, scrape_metadata_view, track_outbound_click
 from apps.catalog.sitemaps import CatalogSitemap, ProductSitemap
 from apps.telegram_bot.views import (
     TelegramWebhookView,
@@ -29,8 +29,9 @@ urlpatterns = [
     path("staff/",   include("apps.staff.urls")),
 
     # API
-    path("api/check-price/",      check_price_now),
-    path("api/scrape-metadata/",  scrape_metadata_view),
+    path("api/check-price/",        check_price_now),
+    path("api/scrape-metadata/",    scrape_metadata_view),
+    path("api/track-outbound/",     track_outbound_click),
 
     # Afiliado
     path("go/<slug:product_slug>/<slug:marketplace_slug>/",

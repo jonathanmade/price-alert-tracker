@@ -65,7 +65,7 @@ def _check_single_alert(alert_id: str):
 
     result = (
         supabase.table("alerts")
-        .select("*, products(*)")
+        .select("*, products(*, scrape_ok_count, scrape_error_count)")
         .eq("id", alert_id)
         .single()
         .execute()
@@ -97,14 +97,28 @@ def _check_single_alert(alert_id: str):
 
     if current_price is None:
         logger.warning(f"No se pudo obtener precio para {product['url']}")
+        supabase.table("products").update({
+            "last_scrape_status": "error",
+            "last_scrape_error":  "No se pudo extraer el precio de la página",
+            "last_checked_at":    now,
+            "scrape_error_count": product.get("scrape_error_count", 0) + 1,
+        }).eq("id", product["id"]).execute()
         supabase.table("profiles").update({
-            "credits": profile.get("credits", 0)
+            "credits": profile.get("credits", 0) + 1
         }).eq("id", user_id).execute()
+        supabase.table("credit_transactions").insert({
+            "user_id": user_id,
+            "amount": 1,
+            "reason": "price_check_refund",
+        }).execute()
         return
 
     supabase.table("products").update({
-        "current_price": current_price,
-        "last_checked_at": now,
+        "current_price":      current_price,
+        "last_checked_at":    now,
+        "last_scrape_status": "ok",
+        "last_scrape_error":  None,
+        "scrape_ok_count":    product.get("scrape_ok_count", 0) + 1,
     }).eq("id", product["id"]).execute()
 
     supabase.table("price_history").insert({
@@ -128,8 +142,10 @@ def _check_single_alert(alert_id: str):
             from apps.telegram_bot.bot import send_alert as tg_send
             tg = TelegramAccount.objects.get(user_id=user_id, active=True)
             tg_send(tg.chat_id, product["name"], hit_url, hit_price, float(alert["target_price"]))
-        except Exception:
+        except TelegramAccount.DoesNotExist:
             pass
+        except Exception:
+            logger.error("Error enviando notificación Telegram para alerta %s", alert_id, exc_info=True)
         supabase.table("alerts").update({
             "status": "triggered",
             "triggered_at": now,

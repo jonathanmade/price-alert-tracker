@@ -37,7 +37,7 @@ def check_price_now(request):
     # Cargar alerta con producto
     result = (
         supabase.table("alerts")
-        .select("*, products(*)")
+        .select("*, products(*, scrape_ok_count, scrape_error_count)")
         .eq("id", alert_id)
         .single()
         .execute()
@@ -69,6 +69,12 @@ def check_price_now(request):
     # Scraping síncrono
     current_price = scrape_price(product["url"])
     if current_price is None:
+        supabase.table("products").update({
+            "last_scrape_status": "error",
+            "last_scrape_error":  "No se pudo extraer el precio de la página",
+            "last_checked_at":    now,
+            "scrape_error_count": product.get("scrape_error_count", 0) + 1,
+        }).eq("id", product["id"]).execute()
         return JsonResponse({"error": "No se pudo obtener el precio de esta URL"}, status=422)
 
     # Descontar crédito
@@ -81,8 +87,11 @@ def check_price_now(request):
 
     # Actualizar precio del producto
     supabase.table("products").update({
-        "current_price": current_price,
-        "last_checked_at": now,
+        "current_price":      current_price,
+        "last_checked_at":    now,
+        "last_scrape_status": "ok",
+        "last_scrape_error":  None,
+        "scrape_ok_count":    product.get("scrape_ok_count", 0) + 1,
     }).eq("id", product["id"]).execute()
 
     # Guardar en historial
@@ -105,8 +114,11 @@ def check_price_now(request):
             from apps.telegram_bot.bot import send_alert as tg_send
             tg = TelegramAccount.objects.get(user_id=user_id, active=True)
             tg_send(tg.chat_id, product["name"], hit_url, hit_price, float(alert["target_price"]))
-        except Exception:
+        except TelegramAccount.DoesNotExist:
             pass
+        except Exception:
+            import logging
+            logging.getLogger(__name__).error("Error enviando Telegram en check_price_now", exc_info=True)
         supabase.table("alerts").update({
             "status": "triggered",
             "triggered_at": now,
@@ -157,3 +169,31 @@ def scrape_metadata_view(request):
 
     data = scrape_metadata(url)
     return JsonResponse(data)
+
+
+@csrf_exempt
+@require_POST
+def track_outbound_click(request):
+    payload = verify_supabase_token(request)
+    if not payload:
+        return JsonResponse({"error": "No autorizado"}, status=401)
+
+    try:
+        body = json.loads(request.body)
+        product_id = body.get("product_id", "").strip()
+    except ValueError:
+        return JsonResponse({"error": "JSON inválido"}, status=400)
+
+    if not product_id:
+        return JsonResponse({"error": "product_id requerido"}, status=400)
+
+    supabase = _get_supabase()
+    product = supabase.table("products").select("id, outbound_clicks").eq("id", product_id).single().execute().data
+    if not product:
+        return JsonResponse({"error": "Producto no encontrado"}, status=404)
+
+    supabase.table("products").update({
+        "outbound_clicks": product.get("outbound_clicks", 0) + 1,
+    }).eq("id", product_id).execute()
+
+    return JsonResponse({"ok": True})

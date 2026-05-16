@@ -14,7 +14,7 @@ Plataforma de alertas de precio para el mercado español. Los usuarios registran
 | Base de datos + Auth clientes | Supabase (PostgreSQL 17 + Auth) |
 | API, worker y panel staff | Django 5.2 + Celery |
 | Cola de tareas | Redis |
-| Scraping | BeautifulSoup + Requests |
+| Scraping | BeautifulSoup + Requests + Playwright (fallback Amazon) |
 | Email | SendGrid |
 | Notificaciones | Telegram Bot API |
 | Frontend público | React + Vite + Tailwind CSS |
@@ -69,7 +69,10 @@ Plataforma de alertas de precio para el mercado español. Los usuarios registran
 ### Supabase (usuarios y alertas)
 ```sql
 profiles            (id → auth.users, email, credits, created_at)
-products            (id, user_id, name, url, current_price, last_checked_at)
+products            (id, user_id, name, url, current_price, last_checked_at,
+                     last_scrape_status, last_scrape_error,   ← salud del scraper
+                     scrape_ok_count, scrape_error_count,     ← contadores históricos
+                     outbound_clicks)                         ← clics de salida
 alerts              (id, user_id, product_id, target_price, status,
                      check_time TIME, triggered_at, created_at)
 alert_urls          (id, alert_id, url, marketplace_label,
@@ -112,8 +115,46 @@ TelegramLinkToken(user_id UUID, token, created_at)            ← TTL 15 min
 | 9 | Onboarding y detección automática de producto | ✅ Completo |
 | 10 | Multi-marketplace en alertas | ✅ Completo |
 | 11 | Analytics del usuario | ✅ Completo |
+| 12 | Scraping con Playwright (fallback Amazon) + salud del scraper | ✅ Completo |
 
-**Pendiente:** pruebas UX/UI · configuración producción (nginx + Gunicorn) · deploy en pricearadar.com
+**Pendiente:** configuración producción (nginx + Gunicorn) · deploy en priceradar.com · tests unitarios · rate limiting
+
+---
+
+## Estado del proyecto — análisis 2025-05-10
+
+### Verificado y funcionando
+- Django `manage.py check` — 0 errores
+- Todas las migraciones Django aplicadas (✓)
+- Panel staff: login, CSRF, redirección, error de credenciales
+- Rutas públicas: `/comparar/`, `/cupones/` — HTTP 200
+- Frontend React (Vite 8, puerto 3000): todas las rutas SPA 200
+- TypeScript compila sin errores
+
+### Bugs corregidos en esta sesión
+| # | Archivo | Descripción |
+|---|---------|-------------|
+| 🔴 | `apps/products/tasks.py` | Reembolso de créditos sobreescribía en vez de sumar; ahora usa `credits + 1` y registra transacción |
+| 🔴 | `apps/alerts/notifications.py` | `print()` reemplazado por `logger.warning/error` |
+| 🟠 | `apps/products/tasks.py` | Excepción Telegram silenciosa: ahora distingue `DoesNotExist` (esperado) de errores reales (loguea con `exc_info`) |
+| 🟠 | `apps/alerts/views.py` | Igual: excepción silenciosa de Telegram ahora loguea |
+| 🟠 | `requirements.txt` | Añadidos paquetes faltantes: `djangorestframework`, `django-cors-headers`, `PyJWT`, `cryptography`, `gunicorn`, `whitenoise` |
+| 🔵 | Renombrado global | `PriceAlert` → `PriceRadar` en 15 archivos (Python, templates, TSX, SQL, config) |
+
+### Bugs pendientes (no bloqueantes hoy)
+| Prioridad | Archivo | Descripción |
+|-----------|---------|-------------|
+| 🟠 P1 | `.env` | `CORS_ALLOWED_ORIGINS` no definida → usa default 5173 pero Vite corre en 3000. Añadir `CORS_ALLOWED_ORIGINS=http://localhost:3000` al `.env` |
+| 🟠 P1 | `.env` | Variables `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_NAME`, `TELEGRAM_WEBHOOK_SECRET`, `FRONTEND_URL` no están en el `.env` — el bot no funcionará sin ellas |
+| 🟡 P2 | `tasks.py:_deduct_credit` | Race condition: READ→UPDATE no atómico; en producción con workers paralelos puede perder créditos |
+| 🟡 P2 | API endpoints | Sin rate limiting (`/api/check-price/`, `/api/scrape-metadata/`) |
+| 🟡 P2 | Staff views | Queries a Supabase sin try/catch; si Supabase cae, el panel devuelve 500 |
+| 🟡 P2 | Codebase | Cero tests unitarios ni de integración |
+| 🔵 P3 | `.env.example` | No incluía `FRONTEND_URL`, `TELEGRAM_*` como referencias — añadir |
+
+### Migraciones Supabase
+Las 4 migraciones deben ejecutarse manualmente en Supabase SQL Editor (ver sección más abajo).
+Estado en producción: verificar manualmente desde el dashboard.
 
 ---
 
@@ -154,6 +195,7 @@ Los gestores se crean manualmente desde `/admin/` asignando el grupo `content_ma
 | `/admin/` | Django admin completo |
 | `/api/check-price/` | Comprobación manual (JWT required) |
 | `/api/scrape-metadata/` | Detección automática nombre/precio/imagen (JWT) |
+| `/api/track-outbound/` | Registra clic de salida a tienda (JWT) |
 | `/api/telegram/status/` | Estado vinculación Telegram (JWT) |
 | `/api/telegram/link/` | Generar enlace de vinculación (JWT) |
 | `/api/telegram/unlink/` | Desvincular cuenta Telegram (JWT) |
@@ -214,7 +256,7 @@ pip install -r requirements.txt
 cp .env.example .env         # completar con tus claves
 python manage.py migrate
 python manage.py createsuperuser
-python manage.py runserver 8001
+python manage.py runserver
 ```
 
 ### Worker Celery
@@ -267,7 +309,7 @@ npm run dev
 |----------|-------------|
 | `VITE_SUPABASE_URL` | URL del proyecto Supabase |
 | `VITE_SUPABASE_ANON_KEY` | Clave pública Supabase |
-| `VITE_DJANGO_API_URL` | URL del backend Django (ej: `http://localhost:8001`) |
+| `VITE_DJANGO_API_URL` | URL del backend Django (ej: `http://localhost:8000`) |
 
 ---
 
@@ -281,6 +323,8 @@ Ejecutar en orden en **SQL Editor** del proyecto:
 | `002_credits.sql` | Sistema de créditos |
 | `003_check_time.sql` | Campo check_time en alerts |
 | `004_alert_urls.sql` | Multi-marketplace (alert_urls) |
+| `005_scrape_status.sql` | Estado del scraper por producto (last_scrape_status, last_scrape_error) |
+| `006_product_counters.sql` | Contadores históricos (scrape_ok_count, scrape_error_count, outbound_clicks) |
 
 ---
 
@@ -298,4 +342,7 @@ Amazon.es · PCComponentes · MediaMarkt · El Corte Inglés · Carrefour
 - **Celery schedule:** corre cada hora y filtra alertas cuyo `check_time` cae en la hora actual (zona Europe/Madrid).
 - **Telegram linking:** tokens de 15 min en `TelegramLinkToken`; el bot responde a `/start <token>` para vincular la cuenta.
 - **Tracking afiliado:** `AffiliateClick` guarda el IP hasheado con SHA-256 (privacidad RGPD).
+- **Scraper con Playwright:** Amazon bloquea scraping básico; el sistema usa Playwright + Chromium headless como fallback para dominios Amazon. Primera llamada ~3-4 s. Requiere `playwright install chromium` tras instalar dependencias.
+- **Salud del scraper:** cada intento de scraping actualiza `last_scrape_status` (`ok`/`error`) y contadores históricos en `products`. Visible en `/staff/analytics/` con tasa de éxito, tasa de rechazo, clics de precio y clics de salida por producto.
+- **Precio actual en alertas:** el precio scrapeado al crear una alerta se guarda en `products.current_price` y se muestra inmediatamente en el dashboard sin esperar el primer ciclo de Celery.
 - **Deploy previsto:** nginx como reverse proxy en pricearadar.com — mismo dominio para React (estáticos) y Django (API + staff).

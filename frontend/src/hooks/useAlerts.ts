@@ -24,13 +24,19 @@ export function useAlerts() {
     targetPrice: number,
     checkTime: string,
     additionalUrls?: AdditionalUrl[],
+    currentPrice?: number | null,
   ): Promise<{ error: string | null }> => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'No autenticado' }
 
     const { data: product, error: productError } = await supabase
       .from('products')
-      .insert({ user_id: user.id, url, name })
+      .insert({
+        user_id:       user.id,
+        url,
+        name,
+        current_price: currentPrice ?? null,
+      })
       .select()
       .single()
 
