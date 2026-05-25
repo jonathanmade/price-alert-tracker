@@ -21,9 +21,10 @@ STORAGES = {
 # SECRET_KEY heredada de base.py — viene siempre de env("SECRET_KEY")
 
 # CORS: solo el dominio de producción (sobrescribe base.py)
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=["https://priceradar.com"],
+
+ALLOWED_HOSTS = env.list(
+    "ALLOWED_HOSTS",
+    default=[".railway.app", "api.pricearadar.com"]
 )
 
 # HTTPS / cookies seguras
