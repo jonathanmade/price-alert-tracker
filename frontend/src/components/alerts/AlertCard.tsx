@@ -77,7 +77,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
 
   return (
     <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow transition-shadow">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
 
         <div className="flex-1 min-w-0">
           {/* Status badge */}
@@ -202,7 +202,7 @@ export default function AlertCard({ alert, onDelete, onTogglePause, onCheckNow, 
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-2 shrink-0">
+        <div className="flex flex-row sm:flex-col gap-2 shrink-0 flex-wrap">
           <button
             onClick={handleCheckNow}
             disabled={checking}

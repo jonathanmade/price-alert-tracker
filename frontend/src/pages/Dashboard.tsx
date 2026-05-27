@@ -22,7 +22,7 @@ export default function Dashboard() {
   return (
     <>
       {/* Page header */}
-      <div className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-100 px-4 sm:px-8 py-4 flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-lg font-semibold text-gray-900">Mis alertas</h1>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -40,7 +40,7 @@ export default function Dashboard() {
       </div>
 
       {/* Content */}
-      <div className="px-8 py-8 space-y-6">
+      <div className="px-4 sm:px-8 py-6 sm:py-8 space-y-6">
 
         {/* Empty state — onboarding */}
         {alerts.length === 0 && (
@@ -59,7 +59,7 @@ export default function Dashboard() {
                 y te avisamos cuando baje el precio.
               </p>
 
-              <div className="grid grid-cols-3 gap-4 mb-8 max-w-md mx-auto text-left">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 max-w-md mx-auto text-left">
                 {([
                   { n: '1', title: 'Pega la URL',     desc: 'Del producto que quieres seguir' },
                   { n: '2', title: 'Fija tu precio',   desc: 'El máximo que pagarías' },

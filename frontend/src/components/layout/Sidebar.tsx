@@ -53,7 +53,12 @@ const navSections = [
   },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  open?: boolean
+  onClose?: () => void
+}
+
+export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const [email, setEmail] = useState('')
   const { credits } = useCredits()
   const lowCredits = credits !== null && credits <= 3
@@ -65,11 +70,25 @@ export default function Sidebar() {
   const initials = email ? email[0].toUpperCase() : '?'
 
   return (
-    <aside className="w-64 min-h-screen bg-slate-950 flex flex-col shrink-0">
+    <aside className={`
+      fixed inset-y-0 left-0 z-50 w-64 bg-slate-950 flex flex-col shrink-0
+      transform transition-transform duration-200 ease-in-out
+      ${open ? 'translate-x-0' : '-translate-x-full'}
+      md:relative md:inset-auto md:translate-x-0 md:transition-none
+    `}>
 
       {/* Logo */}
-      <div className="px-6 py-5 border-b border-white/5">
-        <span className="text-indigo-400 font-bold text-lg tracking-tight">PriceAlert</span>
+      <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+        <span className="text-indigo-400 font-bold text-lg tracking-tight">PriceRadar</span>
+        <button
+          onClick={onClose}
+          className="md:hidden text-slate-400 hover:text-white transition-colors"
+          aria-label="Cerrar menú"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Nav */}
@@ -83,6 +102,7 @@ export default function Sidebar() {
               <NavLink
                 key={to}
                 to={to}
+                onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors border ${
                     isActive
