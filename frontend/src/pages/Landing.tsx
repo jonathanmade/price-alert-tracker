@@ -1,438 +1,681 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../api/supabase'
+import './Landing.css'
 
-const stores = ['Amazon', 'MediaMarkt', 'El Corte Inglés', 'PcComponentes', 'ASOS', 'Zara', 'Fnac', 'Zalando']
-
-const features = [
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-      </svg>
-    ),
-    title: 'Alertas instantáneas',
-    description: 'Recibe un email en el momento exacto en que el precio baja a tu objetivo. Sin demoras, sin spam.',
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    title: 'Revisión programada',
-    description: 'Configura la hora a la que quieres que se compruebe cada producto. Tú mandas el horario.',
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-    title: 'Historial de precios',
-    description: 'Visualiza la evolución del precio con gráficas y decide el mejor momento para comprar.',
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-      </svg>
-    ),
-    title: 'Todas tus tiendas',
-    description: 'Compatible con Amazon, MediaMarkt, PcComponentes y muchas más. Pega cualquier URL.',
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-      </svg>
-    ),
-    title: 'Privado y seguro',
-    description: 'Tus datos son tuyos. No vendemos información ni compartimos tu actividad con terceros.',
-  },
-  {
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-      </svg>
-    ),
-    title: 'Comprobación manual',
-    description: '¿No puedes esperar? Pulsa "Comprobar ahora" y obtén el precio actualizado al instante.',
-  },
+/* =============================================
+   DATA
+============================================= */
+const PRODUCTS = [
+  { name: 'Sony WH-1000XM5', stores: [
+    { name: 'Amazon',        price: 219, best: true  },
+    { name: 'MediaMarkt',    price: 279, best: false },
+    { name: 'PcComponentes', price: 249, best: false },
+  ]},
+  { name: 'iPhone 16 128 GB', stores: [
+    { name: 'Amazon',        price: 729, best: false },
+    { name: 'MediaMarkt',    price: 699, best: true  },
+    { name: 'PcComponentes', price: 749, best: false },
+  ]},
+  { name: 'PlayStation 5 Slim', stores: [
+    { name: 'Amazon',        price: 419, best: true  },
+    { name: 'MediaMarkt',    price: 449, best: false },
+    { name: 'PcComponentes', price: 459, best: false },
+  ]},
+  { name: 'AirPods Pro 2', stores: [
+    { name: 'Amazon',        price: 199, best: true  },
+    { name: 'MediaMarkt',    price: 249, best: false },
+    { name: 'PcComponentes', price: 229, best: false },
+  ]},
 ]
 
-const steps = [
-  { number: '01', title: 'Pega la URL', description: 'Copia el enlace del producto desde cualquier tienda online.' },
-  { number: '02', title: 'Fija tu precio', description: 'Dinos cuánto máximo quieres pagar y cuándo revisarlo.' },
-  { number: '03', title: 'Recibe el aviso', description: 'Te notificamos por email en cuanto baje el precio. Solo compra cuando salga a cuenta.' },
+const TICKERS = [
+  { name: 'AirPods Pro 2',           drop: '−€50',  pct: '−20%' },
+  { name: 'Xiaomi 14T Pro',           drop: '−€80',  pct: '−16%' },
+  { name: 'iPad Air M2 11"',          drop: '−€120', pct: '−18%' },
+  { name: 'RTX 4070 Super',           drop: '−€60',  pct: '−9%'  },
+  { name: 'LG OLED C4 55"',           drop: '−€200', pct: '−22%' },
+  { name: 'Dyson V15 Detect',         drop: '−€90',  pct: '−17%' },
+  { name: 'Nintendo Switch 2',        drop: '−€30',  pct: '−8%'  },
+  { name: 'Samsung Galaxy S25 Ultra', drop: '−€150', pct: '−13%' },
 ]
 
-const plans = [
-  {
-    name: 'Gratis',
-    price: '0',
-    description: 'Para empezar a ahorrar hoy mismo.',
-    features: ['10 créditos de bienvenida', 'Alertas ilimitadas', 'Historial de precios', 'Email de notificación'],
-    cta: 'Empezar gratis',
-    highlight: false,
-  },
-  {
-    name: 'Pro',
-    price: '4,99',
-    description: 'Para compradores que buscan el máximo ahorro.',
-    features: ['500 créditos / mes', 'Todo lo del plan Gratis', 'Comprobaciones cada hora', 'Soporte prioritario'],
-    cta: 'Probar Pro',
-    highlight: true,
-  },
-]
+const CHART_PRICES = [549,549,535,549,515,529,505,495,519,505,485,465,479,455,445,435,449,425,419,419]
 
-function AlertMock() {
-  const [step, setStep] = useState(0)
-
-  useEffect(() => {
-    const t = setInterval(() => setStep(s => (s + 1) % 4), 2000)
-    return () => clearInterval(t)
-  }, [])
-
-  return (
-    <div className="relative w-full max-w-sm mx-auto">
-      {/* Main card */}
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-2xl">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400" />
-          </span>
-          <span className="text-xs text-white/60 font-medium">Monitorizando en tiempo real</span>
-        </div>
-
-        <p className="text-white/50 text-xs mb-1">Sony WH-1000XM5 — Amazon.es</p>
-        <h3 className="text-white font-semibold text-sm mb-3 leading-snug">Sony WH-1000XM5 Auriculares Inalámbricos</h3>
-
-        <div className="flex items-end gap-3 mb-4">
-          <div>
-            <p className="text-white/40 text-xs mb-0.5">Precio actual</p>
-            <p className={`text-2xl font-bold transition-all duration-700 ${step >= 2 ? 'text-green-400' : 'text-white'}`}>
-              {step >= 2 ? '€249,00' : '€319,00'}
-            </p>
-          </div>
-          <div>
-            <p className="text-white/40 text-xs mb-0.5">Mi objetivo</p>
-            <p className="text-lg font-semibold text-indigo-300">€260,00</p>
-          </div>
-          {step >= 2 && (
-            <span className="mb-1 text-xs font-semibold px-2 py-1 rounded-lg bg-green-400/20 text-green-400 animate-pulse">
-              −22%
-            </span>
-          )}
-        </div>
-
-        <div className="w-full bg-white/10 rounded-full h-1.5 mb-1">
-          <div
-            className="bg-indigo-400 h-1.5 rounded-full transition-all duration-1000"
-            style={{ width: step === 0 ? '80%' : step === 1 ? '90%' : '100%' }}
-          />
-        </div>
-        <p className="text-white/30 text-xs">Última revisión: hace 2 min</p>
-      </div>
-
-      {/* Floating notification */}
-      <div className={`absolute -top-4 -right-4 bg-white rounded-xl shadow-xl p-3 w-56 transition-all duration-500 ${step >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-        <div className="flex items-start gap-2.5">
-          <span className="text-lg leading-none">🎉</span>
-          <div>
-            <p className="text-xs font-semibold text-gray-900">¡Precio alcanzado!</p>
-            <p className="text-xs text-gray-500 mt-0.5">Sony WH-1000XM5 bajó a <strong className="text-green-600">€249,00</strong></p>
-          </div>
-        </div>
-      </div>
-
-      {/* Floating savings badge */}
-      <div className={`absolute -bottom-3 -left-4 bg-green-500 text-white rounded-xl shadow-xl px-3 py-2 transition-all duration-500 ${step >= 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
-        <p className="text-xs font-bold">Ahorras €70,00</p>
-      </div>
-    </div>
-  )
+/* =============================================
+   HELPERS
+============================================= */
+function buildChartPaths() {
+  const W = 900, H = 195, PAD = 12
+  const minV = Math.min(...CHART_PRICES), maxV = Math.max(...CHART_PRICES)
+  const pts = CHART_PRICES.map((v, i) => {
+    const x = PAD + (i / (CHART_PRICES.length - 1)) * (W - PAD * 2)
+    const y = PAD + ((maxV - v) / (maxV - minV)) * (H - PAD * 2)
+    return [x, y] as [number, number]
+  })
+  const line = 'M ' + pts.map(p => p.join(' ')).join(' L ')
+  const last = pts[pts.length - 1]
+  const area = line + ` L ${last[0]} ${H + 4} L ${pts[0][0]} ${H + 4} Z`
+  const tipLeft = ((last[0] / W) * 100 - 7).toFixed(1) + '%'
+  const tipTop  = Math.max(2, (last[1] / H) * 100 - 20).toFixed(1) + '%'
+  return { line, area, last, tipLeft, tipTop }
 }
 
-export default function Landing() {
-  const [loggedIn, setLoggedIn] = useState(false)
+function countUp(el: Element) {
+  const to  = parseFloat((el as HTMLElement).dataset.to  || '0')
+  const dec = parseInt((el as HTMLElement).dataset.dec   || '0')
+  const suf = (el as HTMLElement).dataset.suf || ''
+  const dur = 2000, t0 = performance.now()
+  const tick = (now: number) => {
+    const p = Math.min((now - t0) / dur, 1)
+    el.textContent = (to * (1 - Math.pow(1 - p, 3))).toFixed(dec) + suf
+    if (p < 1) requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
 
+/* =============================================
+   ICONS (inline SVG helpers)
+============================================= */
+const IconCheck = () => (
+  <svg className="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M3 8l4 4 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+)
+const IconCross = () => (
+  <svg className="ic-cross" width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+)
+
+/* =============================================
+   COMPONENT
+============================================= */
+export default function Landing() {
+  const [loggedIn, setLoggedIn]       = useState(false)
+  const [widgetIdx, setWidgetIdx]     = useState(0)
+  const [widgetOpacity, setWidgetOp]  = useState(1)
+  const [emailVal, setEmailVal]       = useState('')
+  const [emailSent, setEmailSent]     = useState(false)
+
+  const chartLineRef    = useRef<SVGPathElement>(null)
+  const chartAreaRef    = useRef<SVGPathElement>(null)
+  const endDotRef       = useRef<SVGCircleElement>(null)
+  const endRingRef      = useRef<SVGCircleElement>(null)
+  const chartWrapRef    = useRef<HTMLDivElement>(null)
+  const tooltipRef      = useRef<HTMLDivElement>(null)
+  const connectorRef    = useRef<HTMLDivElement>(null)
+
+  const { line: linePath, area: areaPath, last, tipLeft, tipTop } = buildChartPaths()
+
+  /* Supabase auth */
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setLoggedIn(!!data.session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setLoggedIn(!!session)
-    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setLoggedIn(!!s))
     return () => subscription.unsubscribe()
   }, [])
 
+  /* Nav scroll darken */
+  useEffect(() => {
+    const nav = document.getElementById('l-nav')
+    const handler = () => {
+      if (nav) nav.style.background = window.scrollY > 60 ? 'rgba(2,8,23,.98)' : 'rgba(2,8,23,.8)'
+    }
+    window.addEventListener('scroll', handler, { passive: true })
+    return () => window.removeEventListener('scroll', handler)
+  }, [])
+
+  /* Scroll reveal */
+  useEffect(() => {
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target) } })
+    }, { threshold: 0.08, rootMargin: '0px 0px -48px 0px' })
+    document.querySelectorAll('.landing .reveal').forEach(el => obs.observe(el))
+    return () => obs.disconnect()
+  }, [])
+
+  /* CountUp */
+  useEffect(() => {
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { countUp(e.target); obs.unobserve(e.target) } })
+    }, { threshold: 0.5 })
+    document.querySelectorAll('.landing .cu').forEach(el => obs.observe(el))
+    return () => obs.disconnect()
+  }, [])
+
+  /* Chart SVG animation */
+  useEffect(() => {
+    const line = chartLineRef.current
+    const area = chartAreaRef.current
+    const dot  = endDotRef.current
+    const ring = endRingRef.current
+    const tip  = tooltipRef.current
+    const wrap = chartWrapRef.current
+    if (!line || !area || !dot || !ring || !wrap) return
+
+    area.setAttribute('d', areaPath)
+    line.setAttribute('d', linePath)
+    dot.setAttribute('cx',  String(last[0])); dot.setAttribute('cy',  String(last[1]))
+    ring.setAttribute('cx', String(last[0])); ring.setAttribute('cy', String(last[1]))
+    if (tip) { tip.style.left = tipLeft; tip.style.top = tipTop }
+
+    const len = line.getTotalLength()
+    line.style.strokeDasharray  = String(len)
+    line.style.strokeDashoffset = String(len)
+    line.style.transition = 'stroke-dashoffset 2.6s cubic-bezier(.4,0,.2,1)'
+
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) line.style.strokeDashoffset = '0'
+    }, { threshold: 0.25 })
+    obs.observe(wrap)
+    return () => obs.disconnect()
+  }, [areaPath, linePath, last, tipLeft, tipTop])
+
+  /* Connector animation */
+  useEffect(() => {
+    const el = connectorRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) el.querySelector('.connector-line')?.classList.add('animate')
+    }, { threshold: 0.3 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  /* Widget rotation */
+  useEffect(() => {
+    const t = setInterval(() => {
+      setWidgetOp(0)
+      setTimeout(() => { setWidgetIdx(i => (i + 1) % PRODUCTS.length); setWidgetOp(1) }, 350)
+    }, 4500)
+    return () => clearInterval(t)
+  }, [])
+
+  const product = PRODUCTS[widgetIdx]
+  const tickerDouble = [...TICKERS, ...TICKERS]
+
+  /* Email submit */
+  const handleEmail = (e: React.FormEvent) => {
+    e.preventDefault()
+    setEmailSent(true)
+    setEmailVal('')
+    setTimeout(() => setEmailSent(false), 3200)
+  }
+
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="landing">
 
-      {/* Nav */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-indigo-600 font-bold text-xl tracking-tight">PriceAlert</span>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-gray-500">
-            <a href="#features" className="hover:text-gray-900 transition-colors">Funciones</a>
-            <a href="#how" className="hover:text-gray-900 transition-colors">Cómo funciona</a>
-            <a href="#pricing" className="hover:text-gray-900 transition-colors">Precios</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            {loggedIn ? (
-              <Link to="/dashboard" className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">
-                Ir al dashboard →
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors hidden sm:block">
-                  Iniciar sesión
-                </Link>
-                <Link to="/login" className="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg transition-colors">
-                  Empezar gratis
-                </Link>
-              </>
-            )}
+      {/* ---- NAV ---- */}
+      <nav id="l-nav">
+        <div className="container">
+          <div className="nav-inner">
+            <a href="#hero" className="nav-logo">
+              <div className="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <circle cx="10" cy="10" r="3.5" stroke="white" strokeWidth="1.6"/>
+                  <circle cx="10" cy="10" r="7" stroke="white" strokeWidth="1" strokeDasharray="2.5 2.5"/>
+                  <path d="M10 2v2.5M10 15.5V18M2 10h2.5M15.5 10H18" stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+              </div>
+              Price-A-Radar
+            </a>
+            <ul className="nav-links">
+              <li><a href="#demo">Demo</a></li>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#how">Cómo funciona</a></li>
+              <li><a href="#pricing">Precios</a></li>
+            </ul>
+            <Link to={loggedIn ? '/dashboard' : '/login'} className="btn btn-primary" style={{padding:'10px 20px',fontSize:'14px'}}>
+              {loggedIn ? 'Ir al dashboard' : 'Empezar gratis'}
+            </Link>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Hero */}
-      <section className="relative bg-slate-950 pt-32 pb-28 overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-indigo-600/20 rounded-full blur-3xl" />
-          <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-violet-600/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-800/20 rounded-full blur-3xl" />
-          {/* Grid pattern */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
-              backgroundSize: '60px 60px',
-            }}
-          />
-        </div>
-
-        <div className="relative max-w-6xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-
-            {/* Left */}
+      {/* ---- HERO ---- */}
+      <section id="hero">
+        <div className="hero-glow"/>
+        <div className="container">
+          <div className="hero-grid">
             <div>
-              <span className="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                Alertas de precio automáticas
-              </span>
-
-              <h1 className="text-5xl lg:text-6xl font-bold text-white leading-[1.1] mb-6">
-                Compra cuando{' '}
-                <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-                  el precio es tuyo
+              <div className="hero-eyebrow reveal">
+                <span className="badge badge-green">
+                  <span className="live-dot"/>
+                  48.000 alertas activas ahora mismo
                 </span>
+              </div>
+              <h1 className="hero-title reveal reveal-d1">
+                El marketplace de<br/>los <span className="grad">mejores precios</span>
               </h1>
-
-              <p className="text-lg text-slate-400 mb-8 leading-relaxed max-w-lg">
-                Registra cualquier producto, fija tu precio objetivo y olvídate. Te avisamos por email
-                en cuanto el precio baje. Sin refrescar, sin perder el tiempo.
+              <p className="hero-sub reveal reveal-d2">
+                Monitoriza productos en tiempo real en +127 tiendas. Recibe alertas al instante y nunca pagues de más.
               </p>
-
-              <div className="flex flex-col sm:flex-row gap-3 mb-10">
-                <Link
-                  to={loggedIn ? '/dashboard' : '/login'}
-                  className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3.5 rounded-xl text-sm transition-colors shadow-lg shadow-indigo-500/25"
-                >
+              <div className="hero-ctas reveal reveal-d3">
+                <Link to={loggedIn ? '/dashboard' : '/login'} className="btn btn-primary">
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 7.5h11M8 3l5 4.5L8 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   {loggedIn ? 'Ir al dashboard' : 'Empezar gratis'}
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
                 </Link>
-                <a
-                  href="#how"
-                  className="inline-flex items-center justify-center gap-2 border border-white/10 text-white/70 hover:text-white hover:border-white/20 font-medium px-6 py-3.5 rounded-xl text-sm transition-colors"
-                >
-                  Ver cómo funciona
-                </a>
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center gap-6 pt-6 border-t border-white/10">
-                <div>
-                  <p className="text-2xl font-bold text-white">10</p>
-                  <p className="text-xs text-slate-500">créditos gratis</p>
-                </div>
-                <div className="w-px h-8 bg-white/10" />
-                <div>
-                  <p className="text-2xl font-bold text-white">∞</p>
-                  <p className="text-xs text-slate-500">alertas activas</p>
-                </div>
-                <div className="w-px h-8 bg-white/10" />
-                <div>
-                  <p className="text-2xl font-bold text-white">0€</p>
-                  <p className="text-xs text-slate-500">para empezar</p>
-                </div>
+                <a href="#demo" className="btn btn-secondary">Ver demo en vivo</a>
               </div>
             </div>
 
-            {/* Right — animated mock */}
-            <div className="flex justify-center lg:justify-end">
-              <AlertMock />
+            <div className="hero-right reveal reveal-d2">
+              <div className="price-widget">
+                <div className="widget-head">
+                  <span className="widget-prod" style={{opacity: widgetOpacity}}>{product.name}</span>
+                  <div className="live-indicator"><span className="live-dot"/>En vivo</div>
+                </div>
+                <div className="store-list" style={{opacity: widgetOpacity}}>
+                  {product.stores.map(s => (
+                    <div key={s.name} className={`store-row${s.best ? ' best' : ''}`}>
+                      <span className="store-lbl">{s.name}</span>
+                      <div className="store-right">
+                        <span className="store-price">€{s.price}</span>
+                        {s.best && <span className="badge badge-green" style={{padding:'3px 10px',fontSize:'11px'}}>Mejor oferta</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="ticker-wrap">
+                  <div className="ticker-track">
+                    {tickerDouble.map((t, i) => (
+                      <div key={i} className="ticker-item">
+                        📦 {t.name} <span className="drop">{t.drop} ({t.pct})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stores strip */}
-      <section className="bg-slate-900 border-y border-white/5 py-5">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
-            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider shrink-0">Compatible con</span>
-            {stores.map(store => (
-              <span key={store} className="text-sm font-semibold text-slate-400">{store}</span>
-            ))}
+      {/* ---- SOCIAL PROOF ---- */}
+      <section id="social">
+        <div className="container">
+          <div className="stats-grid">
+            <div className="stat reveal">
+              <span className="stat-num"><span className="euro">€</span><span className="cu" data-to="2.3" data-dec="1">0</span>M</span>
+              <p className="stat-lbl">ahorrados por usuarios</p>
+            </div>
+            <div className="stat reveal reveal-d1">
+              <span className="stat-num"><span className="cu" data-to="48" data-suf="K">0</span> alertas</span>
+              <p className="stat-lbl">activas ahora mismo</p>
+            </div>
+            <div className="stat reveal reveal-d2">
+              <span className="stat-num"><span className="cu" data-to="127">0</span> tiendas</span>
+              <p className="stat-lbl">integradas y creciendo</p>
+            </div>
+            <div className="stat reveal reveal-d3">
+              <span className="stat-num"><span className="cu" data-to="4.9" data-dec="1">0</span>★</span>
+              <p className="stat-lbl">valoración media de usuarios</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <span className="text-indigo-600 text-sm font-semibold uppercase tracking-wider">Funciones</span>
-            <h2 className="text-4xl font-bold text-gray-900 mt-2">
-              Todo lo que necesitas para comprar inteligente
+      {/* ---- DEMO / CHART ---- */}
+      <section id="demo">
+        <div className="container">
+          <div className="reveal">
+            <span className="sec-tag badge badge-indigo">Demo en tiempo real</span>
+            <h2 className="sec-title">Ve la evolución del precio<br/>antes de comprar</h2>
+          </div>
+          <div className="demo-grid">
+            <div className="demo-info reveal reveal-d1">
+              <p className="sec-sub" style={{maxWidth:'340px'}}>Historial completo de precios. Decide cuándo comprar con datos reales, no intuición.</p>
+              <div className="demo-stat">
+                <div className="demo-stat-icon">
+                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 17 8 12 12 14 19 7"/><polyline points="15 7 19 7 19 11"/></svg>
+                </div>
+                <div><div className="demo-stat-val">-24%</div><div className="demo-stat-txt">ahorro medio por alerta activada</div></div>
+              </div>
+              <div className="demo-stat" style={{marginTop:'14px'}}>
+                <div className="demo-stat-icon">
+                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="9"/><polyline points="11 6 11 11 14 13"/></svg>
+                </div>
+                <div><div className="demo-stat-val">&lt;60s</div><div className="demo-stat-txt">tiempo de entrega de la alerta</div></div>
+              </div>
+            </div>
+
+            <div className="chart-box reveal reveal-d2">
+              <div className="chart-topbar">
+                <div>
+                  <div className="chart-prod-name">PlayStation 5 Slim — Disco</div>
+                  <div className="chart-prices">
+                    <span className="chart-cur">€419</span>
+                    <span className="chart-old">€549</span>
+                    <span className="badge badge-green" style={{fontSize:'13px'}}>-24%</span>
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <span className="badge badge-green" style={{marginBottom:'8px',display:'inline-flex'}}>Mínimo histórico</span>
+                  <p style={{fontSize:'12px',color:'var(--c-muted)'}}>Actualizado hace 2 min</p>
+                </div>
+              </div>
+
+              <div className="chart-svg-wrap" ref={chartWrapRef}>
+                <svg className="chart-svg" viewBox="0 0 900 210" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"   stopColor="#10b981" stopOpacity=".28"/>
+                      <stop offset="100%" stopColor="#10b981" stopOpacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <line x1="0" y1="52"  x2="900" y2="52"  stroke="#1e293b" strokeWidth="1" strokeDasharray="5 5"/>
+                  <line x1="0" y1="105" x2="900" y2="105" stroke="#1e293b" strokeWidth="1" strokeDasharray="5 5"/>
+                  <line x1="0" y1="158" x2="900" y2="158" stroke="#1e293b" strokeWidth="1" strokeDasharray="5 5"/>
+                  <path ref={chartAreaRef} fill="url(#areaGrad)" opacity=".8"/>
+                  <path ref={chartLineRef} fill="none" stroke="#10b981" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle ref={endDotRef}  r="6" fill="#10b981"/>
+                  <circle ref={endRingRef} r="6" fill="#10b981" opacity=".25">
+                    <animate attributeName="r"       values="6;16;6"    dur="2.2s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values=".25;0;.25" dur="2.2s" repeatCount="indefinite"/>
+                  </circle>
+                </svg>
+                <div className="tooltip-float" ref={tooltipRef}>¡Baja! −€130</div>
+              </div>
+
+              <div className="chart-labels">
+                {['Ene','Feb','Mar','Abr','May','Jun','Jul','Ahora'].map(m => <span key={m}>{m}</span>)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---- FEATURES ---- */}
+      <section id="features">
+        <div className="container">
+          <div className="features-head reveal">
+            <span className="sec-tag badge badge-indigo">Funcionalidades</span>
+            <h2 className="sec-title">Todo lo que necesitas para<br/>ahorrar sin esfuerzo</h2>
+            <p className="sec-sub">Potente por dentro, simple por fuera. Configura tu primera alerta en segundos.</p>
+          </div>
+          <div className="feat-grid">
+
+            <div className="feat-card reveal">
+              <div className="feat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+              </div>
+              <div className="feat-title">Alertas instantáneas</div>
+              <div className="feat-desc">Recibe notificaciones por email o Telegram en el instante exacto que baja el precio al valor que fijaste.</div>
+              <div className="feat-detail">→ Entrega confirmada en menos de 60 segundos del cambio.</div>
+            </div>
+
+            <div className="feat-card reveal reveal-d1">
+              <div className="feat-icon" style={{background:'rgba(16,185,129,.1)',color:'var(--c-green)'}}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 10l4 4 8-8"/></svg>
+              </div>
+              <div className="feat-title">Comparador multi-tienda</div>
+              <div className="feat-desc">Compara precios en Amazon, MediaMarkt, PcComponentes y +124 tiendas de un solo vistazo.</div>
+              <div className="feat-detail">→ Ahorra hasta un 40% eligiendo la tienda más barata.</div>
+            </div>
+
+            <div className="feat-card reveal reveal-d2">
+              <div className="feat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <div className="feat-title">Historial de precios</div>
+              <div className="feat-desc">Accede al historial completo con gráfica interactiva. Descubre el precio mínimo de todos los tiempos.</div>
+              <div className="feat-detail">→ Datos históricos de hasta 2 años por producto.</div>
+            </div>
+
+            <div className="feat-card reveal reveal-d1">
+              <div className="feat-icon" style={{background:'rgba(245,158,11,.1)',color:'#f59e0b'}}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div className="feat-title">Revisión programada</div>
+              <div className="feat-desc">Configura con qué frecuencia revisamos el precio: cada hora, cada día o cada semana según tu plan.</div>
+              <div className="feat-detail">→ Revisiones cada 15 minutos en plan Pro.</div>
+            </div>
+
+            <div className="feat-card reveal reveal-d2">
+              <div className="feat-icon" style={{background:'rgba(6,182,212,.1)',color:'#06b6d4'}}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+              </div>
+              <div className="feat-title">Comprobación manual</div>
+              <div className="feat-desc">¿No puedes esperar? Lanza una revisión manual con un clic y obtén el precio actual al instante.</div>
+              <div className="feat-detail">→ Sin límites de comprobaciones manuales en Pro.</div>
+            </div>
+
+            <div className="feat-card reveal reveal-d3">
+              <div className="feat-icon" style={{background:'rgba(236,72,153,.1)',color:'#ec4899'}}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              </div>
+              <div className="feat-title">Privado y seguro</div>
+              <div className="feat-desc">Tus URLs y alertas son privadas. Nunca compartimos tus datos. Alojado en servidores europeos bajo el RGPD.</div>
+              <div className="feat-detail">→ Cumplimiento total con RGPD · datos en la UE.</div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ---- PRODUCTS ---- */}
+      <section id="products">
+        <div className="container">
+          <div className="prods-head reveal">
+            <span className="sec-tag badge badge-green">Detectados ahora</span>
+            <h2 className="sec-title">Productos en mínimo histórico hoy</h2>
+            <p className="sec-sub">Localizados en tiempo real por nuestro motor de rastreo.</p>
+          </div>
+          <div className="prods-grid">
+
+            <div className="prod-card reveal">
+              <div className="prod-img">
+                <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+                  <rect x="12" y="22" width="66" height="40" rx="4" fill="#1e3a5f" stroke="#6366f1" strokeWidth="1.5"/>
+                  <rect x="20" y="29" width="50" height="26" rx="2" fill="#020817"/>
+                  <rect x="24" y="62" width="42" height="5" rx="2" fill="#0a1628"/>
+                  <path d="M25 42l10 8 12-14 10 10 12-16" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                </svg>
+                <span className="disc-badge">-31%</span>
+              </div>
+              <div className="prod-body">
+                <div className="prod-store">Amazon</div>
+                <div className="prod-name">MacBook Air M3 13" 8GB / 256GB Medianoche</div>
+                <div className="prod-prices">
+                  <span className="prod-cur">€999</span>
+                  <span className="prod-old">€1.449</span>
+                </div>
+                <Link to={loggedIn ? '/dashboard' : '/login'} className="btn btn-primary btn-prod">Ver oferta →</Link>
+              </div>
+            </div>
+
+            <div className="prod-card reveal reveal-d1">
+              <div className="prod-img">
+                <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+                  <rect x="28" y="12" width="34" height="66" rx="7" fill="#1e3a5f" stroke="#6366f1" strokeWidth="1.5"/>
+                  <rect x="34" y="20" width="22" height="42" rx="2" fill="#020817"/>
+                  <circle cx="45" cy="70" r="2.5" fill="#6366f1"/>
+                  <rect x="39" y="14" width="12" height="3" rx="1.5" fill="#0a1628"/>
+                  <circle cx="45" cy="41" r="9" stroke="#10b981" strokeWidth="1.5" fill="none"/>
+                  <path d="M41 41l3 3 6-6" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                <span className="disc-badge">-22%</span>
+              </div>
+              <div className="prod-body">
+                <div className="prod-store">MediaMarkt</div>
+                <div className="prod-name">iPhone 16 128 GB — Negro</div>
+                <div className="prod-prices">
+                  <span className="prod-cur">€699</span>
+                  <span className="prod-old">€899</span>
+                </div>
+                <Link to={loggedIn ? '/dashboard' : '/login'} className="btn btn-primary btn-prod">Ver oferta →</Link>
+              </div>
+            </div>
+
+            <div className="prod-card reveal reveal-d2">
+              <div className="prod-img">
+                <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+                  <path d="M22 50V44a23 23 0 0146 0v6" stroke="#6366f1" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                  <rect x="16" y="48" width="14" height="22" rx="5" fill="#1e3a5f" stroke="#6366f1" strokeWidth="1.5"/>
+                  <rect x="60" y="48" width="14" height="22" rx="5" fill="#1e3a5f" stroke="#6366f1" strokeWidth="1.5"/>
+                  <circle cx="23" cy="59" r="4" fill="#10b981" opacity=".6"/>
+                  <circle cx="67" cy="59" r="4" fill="#10b981" opacity=".6"/>
+                </svg>
+                <span className="disc-badge">-38%</span>
+              </div>
+              <div className="prod-body">
+                <div className="prod-store">PcComponentes</div>
+                <div className="prod-name">Sony WH-1000XM5 Auriculares BT</div>
+                <div className="prod-prices">
+                  <span className="prod-cur">€219</span>
+                  <span className="prod-old">€349</span>
+                </div>
+                <Link to={loggedIn ? '/dashboard' : '/login'} className="btn btn-primary btn-prod">Ver oferta →</Link>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ---- HOW IT WORKS ---- */}
+      <section id="how">
+        <div className="container">
+          <div className="how-head reveal">
+            <span className="sec-tag badge badge-indigo">Simple y rápido</span>
+            <h2 className="sec-title">Empieza a ahorrar en 3 pasos</h2>
+            <p className="sec-sub">Configura tu primera alerta en menos de 60 segundos. Sin tarjeta. Sin complicaciones.</p>
+          </div>
+          <div className="steps-wrap">
+            <div className="connector" ref={connectorRef}>
+              <div className="connector-dot left"/>
+              <div className="connector-line"/>
+              <div className="connector-dot right"/>
+            </div>
+            <div className="steps-grid">
+              <div className="step reveal">
+                <div className="step-circle"><span className="step-num">1</span></div>
+                <h3 className="step-title">Pega la URL</h3>
+                <p className="step-desc">Copia la URL de cualquier producto desde Amazon, MediaMarkt, PcComponentes o +124 tiendas.</p>
+                <span className="step-pill">→ Un solo pegado</span>
+              </div>
+              <div className="step reveal reveal-d1">
+                <div className="step-circle" style={{borderColor:'#334155'}}><span className="step-num" style={{color:'var(--c-muted)'}}>2</span></div>
+                <h3 className="step-title">Fija tu precio</h3>
+                <p className="step-desc">Indica el precio al que quieres comprar. Nuestro sistema vigila el producto de forma continua.</p>
+                <span className="step-pill" style={{background:'rgba(16,185,129,.08)',color:'var(--c-green)',borderColor:'rgba(16,185,129,.2)'}}>↓ Precio objetivo</span>
+              </div>
+              <div className="step reveal reveal-d2">
+                <div className="step-circle" style={{borderColor:'var(--c-green)'}}><span className="step-num">3</span></div>
+                <h3 className="step-title">Recibe la alerta</h3>
+                <p className="step-desc">Te avisamos por email o Telegram en el instante que el precio baje a tu objetivo.</p>
+                <span className="step-pill" style={{background:'rgba(16,185,129,.08)',color:'var(--c-green)',borderColor:'rgba(16,185,129,.2)'}}>🔔 Alerta en &lt;60s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---- PRICING ---- */}
+      <section id="pricing">
+        <div className="container">
+          <div className="pricing-head reveal">
+            <span className="sec-tag badge badge-indigo">Precios</span>
+            <h2 className="sec-title">Simple y sin sorpresas</h2>
+            <p className="sec-sub">Empieza gratis, escala cuando lo necesites. Sin permanencia.</p>
+          </div>
+          <div className="pricing-grid">
+
+            <div className="plan-card reveal">
+              <div className="plan-tier">Gratis</div>
+              <div className="plan-price-row"><span className="plan-amount">0</span><span className="plan-period">€/mes</span></div>
+              <p className="plan-desc">Perfecto para empezar a ahorrar sin comprometerte con nada.</p>
+              <ul className="plan-feats">
+                <li><IconCheck/>3 alertas activas</li>
+                <li><IconCheck/>Revisión cada 24 horas</li>
+                <li><IconCheck/>Alertas por email</li>
+                <li><IconCheck/>10 créditos de comprobación</li>
+                <li className="off"><IconCross/>Historial extendido (2 años)</li>
+                <li className="off"><IconCross/>Alertas por Telegram</li>
+                <li className="off"><IconCross/>Comparador multi-tienda avanzado</li>
+              </ul>
+              <Link to={loggedIn ? '/dashboard' : '/login'} className="btn btn-secondary btn-plan">Empezar gratis</Link>
+            </div>
+
+            <div className="plan-card featured reveal reveal-d1">
+              <div className="pop-badge">⚡ Más popular</div>
+              <div className="plan-tier">Pro</div>
+              <div className="plan-price-row">
+                <span className="plan-currency">€</span>
+                <span className="plan-amount">4,99</span>
+                <span className="plan-period">/mes</span>
+              </div>
+              <p className="plan-desc">Para compradores habituales que quieren el máximo ahorro sin límites.</p>
+              <ul className="plan-feats">
+                <li><IconCheck/>Alertas ilimitadas</li>
+                <li><IconCheck/>Revisión cada 15 minutos</li>
+                <li><IconCheck/>Email + Telegram</li>
+                <li><IconCheck/>Historial completo (2 años)</li>
+                <li><IconCheck/>Comparador multi-tienda avanzado</li>
+                <li><IconCheck/>Comprobaciones manuales ilimitadas</li>
+                <li><IconCheck/>Soporte prioritario</li>
+              </ul>
+              <Link to={loggedIn ? '/dashboard' : '/login'} className="btn btn-primary btn-plan">Empezar con Pro →</Link>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ---- CTA ---- */}
+      <section id="cta">
+        <div className="container">
+          <div className="cta-inner reveal">
+            <span className="sec-tag badge badge-indigo" style={{marginBottom:'22px'}}>Únete ahora · Es gratis</span>
+            <h2 className="cta-title">
+              Para de pagar de más.<br/>
+              <span style={{color:'var(--c-green)'}}>Para siempre.</span>
             </h2>
-            <p className="text-gray-500 mt-4 max-w-xl mx-auto">
-              Sin complicaciones. Pega la URL, pon tu precio y nosotros hacemos el resto.
+            <p className="cta-sub">Más de 48.000 usuarios ya usan Price-A-Radar para comprar más inteligente en España.</p>
+            <form className="email-form" onSubmit={handleEmail}>
+              <input
+                type="email"
+                className="email-input"
+                placeholder="tu@email.com"
+                value={emailVal}
+                onChange={e => setEmailVal(e.target.value)}
+                required
+              />
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={emailSent ? {background:'var(--c-green)'} : {}}
+              >
+                {emailSent ? '✓ ¡Registrado!' : 'Empezar gratis →'}
+              </button>
+            </form>
+            <p className="fine-print">
+              <b>Sin tarjeta de crédito</b> &nbsp;·&nbsp; <b>10 créditos gratis</b> &nbsp;·&nbsp; <b>Cancela cuando quieras</b>
             </p>
           </div>
+        </div>
+      </section>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((f, i) => (
-              <div key={i} className="group p-6 rounded-2xl border border-gray-100 hover:border-indigo-100 hover:shadow-lg hover:shadow-indigo-50 transition-all duration-300">
-                <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300">
-                  {f.icon}
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.description}</p>
+      {/* ---- FOOTER ---- */}
+      <footer>
+        <div className="container">
+          <div className="foot-inner">
+            <a href="#hero" className="nav-logo" style={{fontSize:'17px'}}>
+              <div className="logo-icon" style={{width:'30px',height:'30px'}}>
+                <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+                  <circle cx="10" cy="10" r="3.5" stroke="white" strokeWidth="1.6"/>
+                  <circle cx="10" cy="10" r="7" stroke="white" strokeWidth="1" strokeDasharray="2.5 2.5"/>
+                </svg>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how" className="py-24 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <span className="text-indigo-600 text-sm font-semibold uppercase tracking-wider">Proceso</span>
-            <h2 className="text-4xl font-bold text-gray-900 mt-2">Tres pasos y listo</h2>
-          </div>
-
-          <div className="grid sm:grid-cols-3 gap-8 relative">
-            {/* Connecting line */}
-            <div className="hidden sm:block absolute top-10 left-[calc(16.66%+2rem)] right-[calc(16.66%+2rem)] h-px bg-gradient-to-r from-indigo-200 via-indigo-300 to-indigo-200" />
-
-            {steps.map((step, i) => (
-              <div key={i} className="text-center relative">
-                <div className="w-20 h-20 rounded-2xl bg-white border-2 border-indigo-100 flex items-center justify-center mx-auto mb-5 shadow-sm">
-                  <span className="text-2xl font-bold text-indigo-600">{step.number}</span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">{step.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <span className="text-indigo-600 text-sm font-semibold uppercase tracking-wider">Precios</span>
-            <h2 className="text-4xl font-bold text-gray-900 mt-2">Simple y transparente</h2>
-            <p className="text-gray-500 mt-4">Sin sorpresas. Empieza gratis y escala cuando lo necesites.</p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            {plans.map((plan, i) => (
-              <div
-                key={i}
-                className={`rounded-2xl p-8 border-2 relative ${
-                  plan.highlight
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xl shadow-indigo-200'
-                    : 'bg-white border-gray-100'
-                }`}
-              >
-                {plan.highlight && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-xs font-bold px-4 py-1 rounded-full shadow">
-                    Más popular
-                  </span>
-                )}
-                <p className={`text-sm font-semibold mb-1 ${plan.highlight ? 'text-indigo-200' : 'text-gray-500'}`}>{plan.name}</p>
-                <div className="flex items-end gap-1 mb-2">
-                  <span className={`text-4xl font-bold ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>€{plan.price}</span>
-                  <span className={`text-sm mb-1.5 ${plan.highlight ? 'text-indigo-200' : 'text-gray-400'}`}>/mes</span>
-                </div>
-                <p className={`text-sm mb-6 ${plan.highlight ? 'text-indigo-200' : 'text-gray-500'}`}>{plan.description}</p>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feat, j) => (
-                    <li key={j} className="flex items-center gap-2.5 text-sm">
-                      <svg className={`w-4 h-4 shrink-0 ${plan.highlight ? 'text-indigo-200' : 'text-indigo-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className={plan.highlight ? 'text-indigo-100' : 'text-gray-600'}>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to={loggedIn ? '/dashboard' : '/login'}
-                  className={`block text-center text-sm font-semibold py-3 rounded-xl transition-colors ${
-                    plan.highlight
-                      ? 'bg-white text-indigo-600 hover:bg-indigo-50'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="bg-gradient-to-br from-indigo-600 to-violet-600 py-24">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Deja de perder ofertas
-          </h2>
-          <p className="text-indigo-200 text-lg mb-10 max-w-xl mx-auto">
-            Cada día miles de productos bajan de precio. Sin PriceAlert, te los pierdes.
-            Con PriceAlert, compras cuando vale la pena.
-          </p>
-          <Link
-            to={loggedIn ? '/dashboard' : '/login'}
-            className="inline-flex items-center gap-2 bg-white text-indigo-600 hover:bg-indigo-50 font-bold px-8 py-4 rounded-xl text-sm transition-colors shadow-xl shadow-indigo-900/20"
-          >
-            {loggedIn ? 'Ir al dashboard' : 'Crear mi cuenta gratis'}
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </Link>
-          <p className="text-indigo-300 text-xs mt-4">Sin tarjeta de crédito. 10 créditos gratis al registrarte.</p>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-950 py-10 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span className="text-indigo-400 font-bold text-lg">PriceAlert</span>
-          <p className="text-xs text-slate-500">© {new Date().getFullYear()} PriceAlert. Hecho con ☕ en España.</p>
-          <div className="flex gap-5 text-xs text-slate-500">
-            <a href="#" className="hover:text-slate-300 transition-colors">Privacidad</a>
-            <a href="#" className="hover:text-slate-300 transition-colors">Términos</a>
-            <a href="mailto:hola@pricealert.es" className="hover:text-slate-300 transition-colors">Contacto</a>
+              Price-A-Radar
+            </a>
+            <ul className="foot-links">
+              <li><a href="#">Privacidad</a></li>
+              <li><a href="#">Términos</a></li>
+              <li><a href="#">Cookies</a></li>
+              <li><a href="#">Contacto</a></li>
+            </ul>
+            <p className="foot-copy">© {new Date().getFullYear()} Price-A-Radar &nbsp;·&nbsp; Hecho con ☕ en España</p>
           </div>
         </div>
       </footer>
