@@ -116,6 +116,10 @@ SUPABASE_ANON_KEY = env("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_ROLE_KEY = env("SUPABASE_SERVICE_ROLE_KEY")
 SUPABASE_JWT_SECRET = env("SUPABASE_JWT_SECRET")
 
+# Staff panel — emails autorizados (separados por coma en la variable de entorno)
+_staff_emails_raw = env("STAFF_EMAILS", default="")
+STAFF_EMAILS = [e.strip() for e in _staff_emails_raw.split(",") if e.strip()]
+
 # SendGrid
 SENDGRID_API_KEY = env("SENDGRID_API_KEY", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@priceradar.com")

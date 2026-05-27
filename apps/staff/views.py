@@ -1,8 +1,6 @@
 import logging
 from django.conf import settings
-from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.utils.text import slugify
@@ -29,25 +27,39 @@ def _supabase():
 
 class StaffLoginView(View):
     def get(self, request):
-        if is_staff_user(request.user):
+        if request.session.get("staff_user"):
             return redirect("/staff/")
         return render(request, "staff/login.html")
 
     def post(self, request):
         email    = request.POST.get("email", "").strip()
         password = request.POST.get("password", "")
-        user     = authenticate(request, username=email, password=password)
-        if user and is_staff_user(user):
-            login(request, user)
-            return redirect("/staff/")
-        return render(request, "staff/login.html", {
-            "error": "Credenciales incorrectas o sin permisos de acceso."
-        })
+
+        try:
+            sb = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+            res = sb.auth.sign_in_with_password({"email": email, "password": password})
+            sb_user = res.user
+        except Exception as exc:
+            logger.warning("Staff login failed for %s: %s", email, exc)
+            return render(request, "staff/login.html", {
+                "error": "Credenciales incorrectas o sin permisos de acceso."
+            })
+
+        # Authorize: app_metadata.is_staff (set via Supabase Dashboard) or STAFF_EMAILS env var
+        app_meta = sb_user.app_metadata or {}
+        staff_emails = getattr(settings, "STAFF_EMAILS", [])
+        if not (app_meta.get("is_staff") or sb_user.email in staff_emails):
+            return render(request, "staff/login.html", {
+                "error": "Credenciales incorrectas o sin permisos de acceso."
+            })
+
+        request.session["staff_user"] = {"id": str(sb_user.id), "email": sb_user.email}
+        return redirect("/staff/")
 
 
 class StaffLogoutView(View):
     def get(self, request):
-        logout(request)
+        request.session.pop("staff_user", None)
         return redirect("/staff/login/")
 
 
