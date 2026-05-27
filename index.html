@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price-A-Radar — El marketplace de los mejores precios</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><circle cx='16' cy='16' r='5' stroke='white' stroke-width='2' fill='none'/><circle cx='16' cy='16' r='10' stroke='white' stroke-width='1.2' stroke-dasharray='3 3' fill='none'/><path d='M16 6v3M16 23v3M6 16h3M23 16h3' stroke='white' stroke-width='2' stroke-linecap='round'/></svg>">
+  <meta name="description" content="Monitoriza precios en tiempo real en +127 tiendas españolas. Recibe alertas al instante cuando baje el precio de tus productos favoritos. Gratis para empezar.">
+  <meta property="og:title" content="Price-A-Radar — El marketplace de los mejores precios">
+  <meta property="og:description" content="Monitoriza precios en tiempo real en +127 tiendas españolas. Recibe alertas al instante cuando baje el precio de tus productos favoritos. Gratis para empezar.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://placehold.co/1200x630/020817/6366f1?text=Price-A-Radar">
+  <meta property="og:url" content="https://www.pricearadar.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* =============================================
+       VARIABLES
+    ============================================= */
+    :root {
+      --color-bg:          #020817;
+      --color-bg-2:        #0a1628;
+      --color-bg-card:     #0f1f38;
+      --color-blue-deep:   #1e3a5f;
+      --color-indigo:      #6366f1;
+      --color-indigo-h:    #4f46e5;
+      --color-green:       #10b981;
+      --color-green-dim:   rgba(16,185,129,0.12);
+      --color-text:        #e2e8f0;
+      --color-muted:       #94a3b8;
+      --color-border:      #1e293b;
+      --font-display:      'Sora', sans-serif;
+      --font-body:         'DM Sans', sans-serif;
+      --r-sm: 8px;
+      --r-md: 14px;
+      --r-lg: 22px;
+      --shadow-card:  0 4px 32px rgba(0,0,0,.45);
+      --glow-indigo:  0 0 48px rgba(99,102,241,.15);
+      --glow-green:   0 0 24px rgba(16,185,129,.2);
+      --t: .3s ease;
+    }
+
+    /* =============================================
+       RESET
+    ============================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+    img { display: block; max-width: 100%; }
+
+    /* =============================================
+       UTILITY
+    ============================================= */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 100px;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .badge-green  { background: rgba(16,185,129,.12); color: var(--color-green);  border: 1px solid rgba(16,185,129,.28); }
+    .badge-indigo { background: rgba(99,102,241,.12); color: var(--color-indigo); border: 1px solid rgba(99,102,241,.28); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 26px;
+      border-radius: var(--r-sm);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: var(--t);
+      border: none;
+      outline: none;
+    }
+    .btn-primary {
+      background: var(--color-indigo);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--color-indigo-h);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgba(99,102,241,.4);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--color-indigo);
+      color: var(--color-indigo);
+    }
+
+    /* Scroll reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(36px);
+      transition: opacity .75s ease, transform .75s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-d1 { transition-delay: .1s; }
+    .reveal-d2 { transition-delay: .2s; }
+    .reveal-d3 { transition-delay: .3s; }
+    .reveal-d4 { transition-delay: .4s; }
+
+    /* Section header pattern */
+    .sec-tag    { display: inline-block; margin-bottom: 18px; }
+    .sec-title  {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4vw, 46px);
+      font-weight: 800;
+      line-height: 1.12;
+      letter-spacing: -.8px;
+      margin-bottom: 16px;
+    }
+    .sec-sub {
+      font-size: 17px;
+      color: var(--color-muted);
+      max-width: 540px;
+    }
+
+    /* =============================================
+       NAV
+    ============================================= */
+    nav {
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 999;
+      padding: 14px 0;
+      background: rgba(2,8,23,.8);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(30,41,59,.6);
+      transition: background var(--t);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 19px;
+      color: #fff;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: var(--color-indigo);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-links {
+      display: flex;
+      gap: 36px;
+    }
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-muted);
+      transition: color var(--t);
+    }
+    .nav-links a:hover { color: #fff; }
+
+    /* =============================================
+       HERO
+    ============================================= */
+    #hero {
+      min-height: 100vh;
+      padding: 130px 0 90px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -10%, rgba(30,58,95,.55) 0%, transparent 65%),
+        radial-gradient(ellipse 45% 45% at 85% 50%, rgba(99,102,241,.1) 0%, transparent 55%);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 52px;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-eyebrow { margin-bottom: 26px; }
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(38px, 5.5vw, 64px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -2px;
+      margin-bottom: 22px;
+    }
+    .grad {
+      background: linear-gradient(130deg, #818cf8 0%, var(--color-indigo) 35%, var(--color-green) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 18px;
+      color: var(--color-muted);
+      margin-bottom: 42px;
+      line-height: 1.7;
+    }
+    .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+
+    /* ---- Price Widget ---- */
+    .price-widget {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-lg);
+      padding: 26px;
+      box-shadow: var(--shadow-card), var(--glow-indigo);
+    }
+    .widget-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .widget-prod {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      transition: opacity .4s;
+    }
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--color-green);
+      font-weight: 600;
+    }
+    .live-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--color-green);
+      animation: blink 1.6s ease infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(16,185,129,.6); }
+      50%      { opacity:.5; box-shadow: 0 0 0 4px rgba(16,185,129,0); }
+    }
+
+    .store-list { display: flex; flex-direction: column; gap: 10px; }
+    .store-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: var(--r-sm);
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--color-border);
+      transition: var(--t);
+    }
+    .store-row.best {
+      background: rgba(16,185,129,.07);
+      border-color: rgba(16,185,129,.28);
+    }
+    .store-lbl { font-size: 14px; font-weight: 500; color: var(--color-muted); }
+    .store-row.best .store-lbl { color: var(--color-text); }
+    .store-right { display: flex; align-items: center; gap: 10px; }
+    .store-price {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 19px;
+    }
+    .store-row.best .store-price { color: var(--color-green); }
+
+    /* ---- Ticker ---- */
+    .ticker-wrap {
+      overflow: hidden;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--color-border);
+    }
+    .ticker-track {
+      display: flex;
+      gap: 36px;
+      white-space: nowrap;
+      animation: marquee 22s linear infinite;
+    }
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      color: var(--color-muted);
+      flex-shrink: 0;
+    }
+    .ticker-item .drop { color: var(--color-green); font-weight: 700; }
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* =============================================
+       SOCIAL PROOF
+    ============================================= */
+    #social {
+      padding: 68px 0;
+      background: var(--color-bg-2);
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 40px;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      display: block;
+      font-family: var(--font-display);
+      font-size: clamp(30px, 3.5vw, 44px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+    .stat-num .euro { color: var(--color-green); }
+    .stat-lbl {
+      font-size: 13px;
+      color: var(--color-muted);
+      margin-top: 5px;
+    }
+
+    /* =============================================
+       DEMO / CHART
+    ============================================= */
+    #demo { padding: 110px 0; }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 56px;
+      align-items: flex-start;
+      margin-top: 56px;
+    }
+    .demo-info { padding-top: 8px; }
+    .demo-info .sec-title { font-size: clamp(24px, 3vw, 36px); }
+    .demo-stat {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 32px;
+      padding: 18px 20px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-md);
+    }
+    .demo-stat-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: var(--color-green-dim);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--color-green);
+      flex-shrink: 0;
+    }
+    .demo-stat-val {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--color-green);
+    }
+    .demo-stat-txt { font-size: 13px; color: var(--color-muted); }
+
+    .chart-box {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-card);
+    }
+    .chart-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .chart-prod-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .chart-prices {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .chart-cur {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 800;
+      color: var(--color-green);
+    }
+    .chart-old {
+      font-size: 17px;
+      color: var(--color-muted);
+      text-decoration: line-through;
+    }
+    .chart-svg-wrap { position: relative; height: 220px; }
+    .chart-svg { width: 100%; height: 100%; }
+
+    .tooltip-float {
+      position: absolute;
+      background: var(--color-indigo);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      pointer-events: none;
+      white-space: nowrap;
+      animation: float 2.2s ease-in-out infinite;
+    }
+    .tooltip-float::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: var(--color-indigo);
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+
+    .chart-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--color-muted);
+    }
+
+    /* =============================================
+       FEATURES
+    ============================================= */
+    #features {
+      padding: 110px 0;
+      background: var(--color-bg-2);
+    }
+    .features-head {
+      text-align: center;
+      margin-bottom: 72px;
+    }
+    .features-head .sec-sub { margin: 0 auto; }
+
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 22px;
+    }
+    .feat-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-md);
+      padding: 30px;
+      cursor: default;
+      position: relative;
+      overflow: hidden;
+      transition: transform var(--t), box-shadow var(--t), border-color var(--t);
+    }
+    .feat-card::after {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--color-indigo), var(--color-green));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .4s ease;
+    }
+    .feat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 22px 52px rgba(0,0,0,.55);
+      border-color: rgba(99,102,241,.3);
+    }
+    .feat-card:hover::after { transform: scaleX(1); }
+
+    .feat-icon {
+      width: 50px; height: 50px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+      background: rgba(99,102,241,.1);
+      color: var(--color-indigo);
+    }
+    .feat-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 9px;
+    }
+    .feat-desc {
+      font-size: 14px;
+      color: var(--color-muted);
+      line-height: 1.65;
+    }
+    .feat-detail {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--color-border);
+      font-size: 13px;
+      color: var(--color-indigo);
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height .4s ease, opacity .4s ease;
+    }
+    .feat-card:hover .feat-detail { max-height: 56px; opacity: 1; }
+
+    /* =============================================
+       PRODUCTS
+    ============================================= */
+    #products { padding: 110px 0; }
+    .prods-head { text-align: center; margin-bottom: 64px; }
+    .prods-head .sec-sub { margin: 0 auto; }
+
+    .prods-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 24px;
+    }
+    .prod-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform var(--t), box-shadow var(--t);
+    }
+    .prod-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 22px 52px rgba(0,0,0,.55);
+    }
+    .prod-img {
+      height: 185px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: linear-gradient(135deg, var(--color-bg-2) 0%, var(--color-blue-deep) 100%);
+    }
+    .disc-badge {
+      position: absolute;
+      top: 14px; right: 14px;
+      background: var(--color-green);
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 7px;
+    }
+    .prod-body { padding: 20px 22px 22px; display: flex; flex-direction: column; flex: 1; }
+    .prod-store {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 7px;
+    }
+    .prod-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 13px;
+      line-height: 1.4;
+    }
+    .prod-prices {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 16px;
+      margin-top: auto;
+    }
+    .prod-cur {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--color-green);
+    }
+    .prod-old {
+      font-size: 14px;
+      color: var(--color-muted);
+      text-decoration: line-through;
+    }
+    .btn-prod { width: 100%; justify-content: center; padding: 11px; font-size: 14px; }
+
+    /* =============================================
+       HOW IT WORKS
+    ============================================= */
+    #how {
+      padding: 110px 0;
+      background: var(--color-bg-2);
+    }
+    .how-head { text-align: center; margin-bottom: 72px; }
+    .how-head .sec-sub { margin: 0 auto; }
+
+    .steps-wrap { position: relative; }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 48px;
+      position: relative;
+      z-index: 1;
+    }
+    .connector {
+      position: absolute;
+      top: 48px;
+      left: calc(100%/6);
+      width: calc(100%*2/3);
+      height: 2px;
+      z-index: 0;
+      overflow: visible;
+    }
+    .connector-line {
+      width: 100%; height: 2px;
+      background: linear-gradient(90deg, var(--color-indigo), var(--color-green));
+      animation: connector-draw 1.2s cubic-bezier(.4,0,.2,1) both;
+      animation-play-state: paused;
+    }
+    .connector-line.animate { animation-play-state: running; }
+    @keyframes connector-draw {
+      from { clip-path: inset(0 100% 0 0); }
+      to   { clip-path: inset(0 0% 0 0); }
+    }
+    .connector-dot {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .connector-dot.left  { left: -5px;  background: var(--color-indigo); }
+    .connector-dot.right { right: -5px; background: var(--color-green); }
+
+    .step { text-align: center; }
+    .step-circle {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 28px;
+      position: relative;
+      transition: border-color var(--t), box-shadow var(--t);
+    }
+    .step:hover .step-circle {
+      border-color: var(--color-indigo);
+      box-shadow: var(--glow-indigo);
+    }
+    .step:last-child:hover .step-circle {
+      border-color: var(--color-green);
+      box-shadow: var(--glow-green);
+    }
+    .step-num {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--color-indigo);
+      line-height: 1;
+    }
+    .step:last-child .step-num { color: var(--color-green); }
+    .step-title {
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .step-desc {
+      font-size: 14px;
+      color: var(--color-muted);
+      max-width: 230px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
+    .step-icon-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 14px;
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(99,102,241,.1);
+      color: var(--color-indigo);
+      border: 1px solid rgba(99,102,241,.2);
+    }
+
+    /* =============================================
+       PRICING
+    ============================================= */
+    #pricing { padding: 110px 0; }
+    .pricing-head { text-align: center; margin-bottom: 64px; }
+    .pricing-head .sec-sub { margin: 0 auto; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2,1fr);
+      gap: 24px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .plan-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-lg);
+      padding: 38px;
+      position: relative;
+    }
+    .plan-card.featured {
+      border-color: var(--color-indigo);
+      box-shadow: var(--glow-indigo);
+    }
+    .pop-badge {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-indigo);
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 18px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .plan-tier {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-muted);
+      margin-bottom: 14px;
+    }
+    .plan-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .plan-currency { font-family: var(--font-display); font-size: 24px; font-weight: 700; }
+    .plan-amount   { font-family: var(--font-display); font-size: 52px; font-weight: 800; letter-spacing: -2px; }
+    .plan-period   { font-size: 16px; color: var(--color-muted); }
+    .plan-desc {
+      font-size: 14px;
+      color: var(--color-muted);
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: 24px;
+    }
+    .plan-feats {
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      margin-bottom: 28px;
+    }
+    .plan-feats li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .plan-feats li.off { color: var(--color-muted); }
+    .ic-check { color: var(--color-green); flex-shrink: 0; }
+    .ic-cross  { color: #334155;           flex-shrink: 0; }
+    .btn-plan { width: 100%; justify-content: center; padding: 14px; font-size: 15px; }
+
+    /* =============================================
+       FINAL CTA
+    ============================================= */
+    #cta {
+      padding: 110px 0;
+      border-top: 1px solid var(--color-border);
+      background:
+        radial-gradient(ellipse 65% 90% at 50% 50%, rgba(99,102,241,.1) 0%, transparent 65%);
+    }
+    .cta-inner {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .cta-title {
+      font-family: var(--font-display);
+      font-size: clamp(34px, 5.5vw, 56px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -1.5px;
+      margin-bottom: 18px;
+    }
+    .cta-sub {
+      font-size: 17px;
+      color: var(--color-muted);
+      margin-bottom: 44px;
+    }
+    .email-form {
+      display: flex;
+      gap: 12px;
+      max-width: 500px;
+      margin: 0 auto 16px;
+    }
+    .email-input {
+      flex: 1;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--r-sm);
+      padding: 14px 18px;
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      outline: none;
+      transition: border-color var(--t);
+    }
+    .email-input::placeholder { color: var(--color-muted); }
+    .email-input:focus { border-color: var(--color-indigo); }
+    .email-form .btn { padding: 14px 24px; white-space: nowrap; }
+    .fine-print { font-size: 13px; color: var(--color-muted); }
+    .fine-print b { color: var(--color-text); font-weight: 500; }
+
+    /* =============================================
+       FOOTER
+    ============================================= */
+    footer {
+      padding: 38px 0;
+      border-top: 1px solid var(--color-border);
+    }
+    .foot-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+    .foot-links { display: flex; gap: 28px; }
+    .foot-links a { font-size: 14px; color: var(--color-muted); transition: color var(--t); }
+    .foot-links a:hover { color: #fff; }
+    .foot-copy { font-size: 13px; color: var(--color-muted); }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width: 1024px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 56px; }
+      .hero-right { max-width: 540px; margin: 0 auto; }
+      .demo-grid { grid-template-columns: 1fr; }
+      .feat-grid { grid-template-columns: repeat(2,1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .stats-grid { grid-template-columns: repeat(2,1fr); gap: 28px; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .prods-grid { grid-template-columns: 1fr; max-width: 380px; margin: 0 auto; }
+      .steps-grid { grid-template-columns: 1fr; gap: 52px; }
+      .connector { display: none; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .email-form { flex-direction: column; }
+      .foot-inner { flex-direction: column; text-align: center; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================
+     NAV
+============================= -->
+<nav id="main-nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo">
+        <div class="logo-icon">
+          <!-- Radar icon -->
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="3.5" stroke="white" stroke-width="1.6"/>
+            <circle cx="10" cy="10" r="7"   stroke="white" stroke-width="1" stroke-dasharray="2.5 2.5"/>
+            <path d="M10 2v2.5M10 15.5V18M2 10h2.5M15.5 10H18" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        Price-A-Radar
+      </a>
+      <ul class="nav-links">
+        <li><a href="#demo">Demo</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how">Cómo funciona</a></li>
+        <li><a href="#pricing">Precios</a></li>
+      </ul>
+      <a href="#cta" class="btn btn-primary" style="padding:10px 20px;font-size:14px;">Empezar gratis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================
+     HERO
+============================= -->
+<section id="hero">
+  <div class="hero-glow"></div>
+  <div class="container">
+    <div class="hero-grid">
+
+      <!-- Left copy -->
+      <div>
+        <div class="hero-eyebrow reveal">
+          <span class="badge badge-green">
+            <span class="live-dot"></span>
+            48.000 alertas activas ahora mismo
+          </span>
+        </div>
+        <h1 class="hero-title reveal reveal-d1">
+          Todo lo que buscas <br>a los <span class="grad">mejores precios</span>
+        </h1>
+        <p class="hero-sub reveal reveal-d2">
+          Monitoriza productos en tiempo real en +127 tiendas. Recibe alertas al instante y nunca pagues de más.
+        </p>
+        <div class="hero-ctas reveal reveal-d3">
+          <a href="#cta" class="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 7.5h11M8 3l5 4.5L8 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Empezar gratis
+          </a>
+          <a href="#demo" class="btn btn-secondary">Ver demo en vivo</a>
+        </div>
+      </div>
+
+      <!-- Right: animated widget -->
+      <div class="hero-right reveal reveal-d2">
+        <div class="price-widget">
+          <div class="widget-head">
+            <span class="widget-prod" id="w-prod">Sony WH-1000XM5</span>
+            <div class="live-indicator">
+              <span class="live-dot"></span>En vivo
+            </div>
+          </div>
+          <div class="store-list" id="w-stores"><!-- JS --></div>
+          <div class="ticker-wrap">
+            <div class="ticker-track" id="ticker"><!-- JS --></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================
+     SOCIAL PROOF
+============================= -->
+<section id="social">
+  <div class="container">
+    <div class="stats-grid">
+
+      <div class="stat reveal">
+        <span class="stat-num">
+          <span class="euro">€</span><span class="cu" data-to="2.3" data-dec="1">0</span>M
+        </span>
+        <p class="stat-lbl">ahorrados por usuarios</p>
+      </div>
+
+      <div class="stat reveal reveal-d1">
+        <span class="stat-num">
+          <span class="cu" data-to="48" data-suf="K">0</span> alertas
+        </span>
+        <p class="stat-lbl">activas ahora mismo</p>
+      </div>
+
+      <div class="stat reveal reveal-d2">
+        <span class="stat-num">
+          <span class="cu" data-to="127">0</span> tiendas
+        </span>
+        <p class="stat-lbl">integradas y creciendo</p>
+      </div>
+
+      <div class="stat reveal reveal-d3">
+        <span class="stat-num">
+          <span class="cu" data-to="4.9" data-dec="1">0</span>★
+        </span>
+        <p class="stat-lbl">valoración media de usuarios</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================
+     DEMO / CHART
+============================= -->
+<section id="demo">
+  <div class="container">
+    <div class="reveal">
+      <span class="sec-tag badge badge-indigo">Demo en tiempo real</span>
+      <h2 class="sec-title">Ve la evolución del precio<br>antes de comprar</h2>
+    </div>
+    <div class="demo-grid">
+
+      <!-- Left info -->
+      <div class="demo-info reveal reveal-d1">
+        <p class="sec-sub" style="max-width:340px;">Historial completo de precios. Decide cuándo comprar con datos reales, no intuición.</p>
+        <div class="demo-stat">
+          <div class="demo-stat-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 8 12 12 14 19 7"/><polyline points="15 7 19 7 19 11"/></svg>
+          </div>
+          <div>
+            <div class="demo-stat-val">-24%</div>
+            <div class="demo-stat-txt">ahorro medio por alerta activada</div>
+          </div>
+        </div>
+        <div class="demo-stat" style="margin-top:14px;">
+          <div class="demo-stat-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="9"/><polyline points="11 6 11 11 14 13"/></svg>
+          </div>
+          <div>
+            <div class="demo-stat-val">&lt;60s</div>
+            <div class="demo-stat-txt">tiempo de entrega de la alerta</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right chart -->
+      <div class="chart-box reveal reveal-d2">
+        <div class="chart-topbar">
+          <div>
+            <div class="chart-prod-name">PlayStation 5 Slim — Disco</div>
+            <div class="chart-prices">
+              <span class="chart-cur">€419</span>
+              <span class="chart-old">€549</span>
+              <span class="badge badge-green" style="font-size:13px;">-24%</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span class="badge badge-green" style="margin-bottom:8px;display:inline-flex;">Mínimo histórico</span>
+            <p style="font-size:12px;color:var(--color-muted);">Actualizado hace 2 min</p>
+          </div>
+        </div>
+
+        <div class="chart-svg-wrap" id="chart-wrap">
+          <svg class="chart-svg" id="chart-svg" viewBox="0 0 900 210" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#10b981" stop-opacity=".28"/>
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- Grid lines -->
+            <line x1="0" y1="52"  x2="900" y2="52"  stroke="#1e293b" stroke-width="1" stroke-dasharray="5 5"/>
+            <line x1="0" y1="105" x2="900" y2="105" stroke="#1e293b" stroke-width="1" stroke-dasharray="5 5"/>
+            <line x1="0" y1="158" x2="900" y2="158" stroke="#1e293b" stroke-width="1" stroke-dasharray="5 5"/>
+            <!-- Gradient area -->
+            <path id="chart-area"  fill="url(#areaGrad)" opacity=".8"/>
+            <!-- Price line -->
+            <path id="chart-line"  fill="none" stroke="#10b981" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- End dot -->
+            <circle id="end-dot"   r="6" fill="#10b981"/>
+            <!-- Pulse ring -->
+            <circle id="end-ring"  r="6" fill="#10b981" opacity=".25">
+              <animate attributeName="r"       values="6;16;6"     dur="2.2s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values=".25;0;.25"  dur="2.2s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+          <div class="tooltip-float" id="chart-tip">¡Baja! −€130</div>
+        </div>
+
+        <div class="chart-labels">
+          <span>Ene</span><span>Feb</span><span>Mar</span><span>Abr</span>
+          <span>May</span><span>Jun</span><span>Jul</span><span>Ahora</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================
+     FEATURES
+============================= -->
+<section id="features">
+  <div class="container">
+    <div class="features-head reveal">
+      <span class="sec-tag badge badge-indigo">Funcionalidades</span>
+      <h2 class="sec-title">Todo lo que necesitas para<br>ahorrar sin esfuerzo</h2>
+      <p class="sec-sub">Potente por dentro, simple por fuera. Configura tu primera alerta en segundos.</p>
+    </div>
+    <div class="feat-grid">
+
+      <div class="feat-card reveal">
+        <div class="feat-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </div>
+        <div class="feat-title">Alertas instantáneas</div>
+        <div class="feat-desc">Recibe notificaciones por email o Telegram en el instante exacto que baja el precio al valor que fijaste.</div>
+        <div class="feat-detail">→ Entrega confirmada en menos de 60 segundos del cambio.</div>
+      </div>
+
+      <div class="feat-card reveal reveal-d1">
+        <div class="feat-icon" style="background:rgba(16,185,129,.1);color:var(--color-green);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 10l4 4 8-8"/></svg>
+        </div>
+        <div class="feat-title">Comparador multi-tienda</div>
+        <div class="feat-desc">Compara precios en Amazon, MediaMarkt, PcComponentes y +124 tiendas de un solo vistazo.</div>
+        <div class="feat-detail">→ Ahorra hasta un 40% eligiendo la tienda más barata.</div>
+      </div>
+
+      <div class="feat-card reveal reveal-d2">
+        <div class="feat-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="feat-title">Historial de precios</div>
+        <div class="feat-desc">Accede al historial completo con gráfica interactiva. Descubre el precio mínimo de todos los tiempos.</div>
+        <div class="feat-detail">→ Datos históricos de hasta 2 años por producto.</div>
+      </div>
+
+      <div class="feat-card reveal reveal-d1">
+        <div class="feat-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="feat-title">Revisión programada</div>
+        <div class="feat-desc">Configura con qué frecuencia revisamos el precio: cada hora, cada día o cada semana según tu plan.</div>
+        <div class="feat-detail">→ Revisiones cada 15 minutos en plan Pro.</div>
+      </div>
+
+      <div class="feat-card reveal reveal-d2">
+        <div class="feat-icon" style="background:rgba(6,182,212,.1);color:#06b6d4;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        </div>
+        <div class="feat-title">Comprobación manual</div>
+        <div class="feat-desc">¿No puedes esperar? Lanza una revisión manual con un clic y obtén el precio actual al instante.</div>
+        <div class="feat-detail">→ Sin límites de comprobaciones manuales en Pro.</div>
+      </div>
+
+      <div class="feat-card reveal reveal-d3">
+        <div class="feat-icon" style="background:rgba(236,72,153,.1);color:#ec4899;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <div class="feat-title">Privado y seguro</div>
+        <div class="feat-desc">Tus URLs y alertas son privadas. Nunca compartimos tus datos. Alojado en servidores europeos bajo el RGPD.</div>
+        <div class="feat-detail">→ Cumplimiento total con RGPD · datos en la UE.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================
+     PRODUCTS — BEST OFFERS
+============================= -->
+<section id="products">
+  <div class="container">
+    <div class="prods-head reveal">
+      <span class="sec-tag badge badge-green">Detectados ahora</span>
+      <h2 class="sec-title">Productos en mínimo histórico hoy</h2>
+      <p class="sec-sub">Localizados en tiempo real por nuestro motor de rastreo.</p>
+    </div>
+    <div class="prods-grid">
+
+      <!-- Card 1 -->
+      <div class="prod-card reveal">
+        <div class="prod-img">
+          <!-- Laptop SVG placeholder -->
+          <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+            <rect x="12" y="22" width="66" height="40" rx="4" fill="#1e3a5f" stroke="#6366f1" stroke-width="1.5"/>
+            <rect x="20" y="29" width="50" height="26" rx="2" fill="#020817"/>
+            <rect x="24" y="62" width="42" height="5" rx="2" fill="#0a1628"/>
+            <path d="M25 42l10 8 12-14 10 10 12-16" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <span class="disc-badge">-31%</span>
+        </div>
+        <div class="prod-body">
+          <div class="prod-store">Amazon</div>
+          <div class="prod-name">MacBook Air M3 13" 8GB / 256GB Medianoche</div>
+          <div class="prod-prices">
+            <span class="prod-cur">€999</span>
+            <span class="prod-old">€1.449</span>
+          </div>
+          <a href="#" class="btn btn-primary btn-prod">Ver oferta →</a>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="prod-card reveal reveal-d1">
+        <div class="prod-img">
+          <!-- Phone SVG placeholder -->
+          <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+            <rect x="28" y="12" width="34" height="66" rx="7" fill="#1e3a5f" stroke="#6366f1" stroke-width="1.5"/>
+            <rect x="34" y="20" width="22" height="42" rx="2" fill="#020817"/>
+            <circle cx="45" cy="70" r="2.5" fill="#6366f1"/>
+            <rect x="39" y="14" width="12" height="3" rx="1.5" fill="#0a1628"/>
+            <circle cx="45" cy="41" r="9" stroke="#10b981" stroke-width="1.5" fill="none"/>
+            <path d="M41 41l3 3 6-6" stroke="#10b981" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span class="disc-badge">-22%</span>
+        </div>
+        <div class="prod-body">
+          <div class="prod-store">MediaMarkt</div>
+          <div class="prod-name">iPhone 16 128 GB — Negro</div>
+          <div class="prod-prices">
+            <span class="prod-cur">€699</span>
+            <span class="prod-old">€899</span>
+          </div>
+          <a href="#" class="btn btn-primary btn-prod">Ver oferta →</a>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="prod-card reveal reveal-d2">
+        <div class="prod-img">
+          <!-- Headphones SVG placeholder -->
+          <svg width="90" height="90" viewBox="0 0 90 90" fill="none">
+            <path d="M22 50V44a23 23 0 0146 0v6" stroke="#6366f1" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <rect x="16" y="48" width="14" height="22" rx="5" fill="#1e3a5f" stroke="#6366f1" stroke-width="1.5"/>
+            <rect x="60" y="48" width="14" height="22" rx="5" fill="#1e3a5f" stroke="#6366f1" stroke-width="1.5"/>
+            <circle cx="23" cy="59" r="4" fill="#10b981" opacity=".6"/>
+            <circle cx="67" cy="59" r="4" fill="#10b981" opacity=".6"/>
+          </svg>
+          <span class="disc-badge">-38%</span>
+        </div>
+        <div class="prod-body">
+          <div class="prod-store">PcComponentes</div>
+          <div class="prod-name">Sony WH-1000XM5 Auriculares BT</div>
+          <div class="prod-prices">
+            <span class="prod-cur">€219</span>
+            <span class="prod-old">€349</span>
+          </div>
+          <a href="#" class="btn btn-primary btn-prod">Ver oferta →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================
+     HOW IT WORKS
+============================= -->
+<section id="how">
+  <div class="container">
+    <div class="how-head reveal">
+      <span class="sec-tag badge badge-indigo">Simple y rápido</span>
+      <h2 class="sec-title">Empieza a ahorrar en 3 pasos</h2>
+      <p class="sec-sub">Configura tu primera alerta en menos de 60 segundos. Sin tarjeta. Sin complicaciones.</p>
+    </div>
+
+    <div class="steps-wrap">
+      <!-- Animated connector line -->
+      <div class="connector" id="connector-wrap">
+        <div class="connector-dot left"></div>
+        <div class="connector-line" id="connector-line"></div>
+        <div class="connector-dot right"></div>
+      </div>
+
+      <div class="steps-grid">
+
+        <div class="step reveal">
+          <div class="step-circle">
+            <span class="step-num">1</span>
+          </div>
+          <h3 class="step-title">Pega la URL</h3>
+          <p class="step-desc">Copia la URL de cualquier producto desde Amazon, MediaMarkt, PcComponentes o +124 tiendas.</p>
+          <span class="step-icon-pill">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Un solo pegado
+          </span>
+        </div>
+
+        <div class="step reveal reveal-d1">
+          <div class="step-circle" style="border-color:#334155;">
+            <span class="step-num" style="color:var(--color-muted);">2</span>
+          </div>
+          <h3 class="step-title">Fija tu precio</h3>
+          <p class="step-desc">Indica el precio al que quieres comprar. Nuestro sistema vigila el producto de forma continua.</p>
+          <span class="step-icon-pill" style="background:rgba(16,185,129,.08);color:var(--color-green);border-color:rgba(16,185,129,.2);">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M2 7l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Precio objetivo
+          </span>
+        </div>
+
+        <div class="step reveal reveal-d2">
+          <div class="step-circle" style="border-color:var(--color-green);">
+            <span class="step-num">3</span>
+          </div>
+          <h3 class="step-title">Recibe la alerta</h3>
+          <p class="step-desc">Te avisamos por email o Telegram en el instante que el precio baje a tu objetivo. Compra en el mejor momento.</p>
+          <span class="step-icon-pill" style="background:rgba(16,185,129,.08);color:var(--color-green);border-color:rgba(16,185,129,.2);">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M9 4A3 3 0 003 4c0 3.5-1.5 4.5-1.5 4.5h9S9 7.5 9 4z" stroke="currentColor" stroke-width="1.2"/><path d="M6.7 10.5a.7.7 0 01-1.4 0" stroke="currentColor" stroke-width="1.2"/></svg>
+            Alerta en &lt;60s
+          </span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================
+     PRICING
+============================= -->
+<section id="pricing">
+  <div class="container">
+    <div class="pricing-head reveal">
+      <span class="sec-tag badge badge-indigo">Precios</span>
+      <h2 class="sec-title">Simple y sin sorpresas</h2>
+      <p class="sec-sub">Empieza gratis, escala cuando lo necesites. Sin permanencia.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <!-- Free -->
+      <div class="plan-card reveal">
+        <div class="plan-tier">Gratis</div>
+        <div class="plan-price-row">
+          <span class="plan-amount">0</span>
+          <span class="plan-period">€/mes</span>
+        </div>
+        <p class="plan-desc">Perfecto para empezar a ahorrar sin comprometerte con nada.</p>
+        <ul class="plan-feats">
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            3 alertas activas
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Revisión cada 24 horas
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Alertas por email
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            10 créditos de comprobación
+          </li>
+          <li class="off">
+            <svg class="ic-cross" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Historial extendido (2 años)
+          </li>
+          <li class="off">
+            <svg class="ic-cross" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Alertas por Telegram
+          </li>
+          <li class="off">
+            <svg class="ic-cross" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 5l6 6M11 5l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Comparador multi-tienda avanzado
+          </li>
+        </ul>
+        <a href="#cta" class="btn btn-secondary btn-plan">Empezar gratis</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="plan-card featured reveal reveal-d1">
+        <div class="pop-badge">⚡ Más popular</div>
+        <div class="plan-tier">Pro</div>
+        <div class="plan-price-row">
+          <span class="plan-currency">€</span>
+          <span class="plan-amount">4,99</span>
+          <span class="plan-period">/mes</span>
+        </div>
+        <p class="plan-desc">Para compradores habituales que quieren el máximo ahorro sin límites.</p>
+        <ul class="plan-feats">
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Alertas ilimitadas
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Revisión cada 15 minutos
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Email + Telegram
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Historial completo (2 años)
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Comparador multi-tienda avanzado
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Comprobaciones manuales ilimitadas
+          </li>
+          <li>
+            <svg class="ic-check" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Soporte prioritario
+          </li>
+        </ul>
+        <a href="#cta" class="btn btn-primary btn-plan">Empezar con Pro →</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================
+     FINAL CTA
+============================= -->
+<section id="cta">
+  <div class="container">
+    <div class="cta-inner reveal">
+      <span class="sec-tag badge badge-indigo" style="margin-bottom:22px;">Únete ahora · Es gratis</span>
+      <h2 class="cta-title">
+        Para de pagar de más.<br>
+        <span style="color:var(--color-green);">Para siempre.</span>
+      </h2>
+      <p class="cta-sub">
+        Más de 48.000 usuarios ya usan Price-A-Radar para comprar más inteligente en España.
+      </p>
+      <form class="email-form" onsubmit="handleSubmit(event)">
+        <input type="email" class="email-input" id="cta-email" placeholder="tu@email.com" required>
+        <button type="submit" class="btn btn-primary" id="cta-btn">Empezar gratis →</button>
+      </form>
+      <p class="fine-print">
+        <b>Sin tarjeta de crédito</b> &nbsp;·&nbsp; <b>10 créditos gratis</b> &nbsp;·&nbsp; <b>Cancela cuando quieras</b>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================
+     FOOTER
+============================= -->
+<footer>
+  <div class="container">
+    <div class="foot-inner">
+      <a href="#hero" class="nav-logo" style="font-size:17px;">
+        <div class="logo-icon" style="width:30px;height:30px;">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="3.5" stroke="white" stroke-width="1.6"/>
+            <circle cx="10" cy="10" r="7" stroke="white" stroke-width="1" stroke-dasharray="2.5 2.5"/>
+          </svg>
+        </div>
+        Price-A-Radar
+      </a>
+      <ul class="foot-links">
+        <li><a href="#">Privacidad</a></li>
+        <li><a href="#">Términos</a></li>
+        <li><a href="#">Cookies</a></li>
+        <li><a href="#">Contacto</a></li>
+      </ul>
+      <p class="foot-copy">© 2025 Price-A-Radar &nbsp;·&nbsp; Hecho con ☕ en España</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================
+     JAVASCRIPT
+============================= -->
+<script>
+  /* ============================================
+     WIDGET — rotating product comparison
+  ============================================ */
+  const PRODUCTS = [
+    {
+      name: 'Sony WH-1000XM5',
+      stores: [
+        { name: 'Amazon',         price: 219, best: true  },
+        { name: 'MediaMarkt',     price: 279, best: false },
+        { name: 'PcComponentes', price: 249, best: false  }
+      ]
+    },
+    {
+      name: 'iPhone 16 128 GB',
+      stores: [
+        { name: 'Amazon',         price: 729, best: false },
+        { name: 'MediaMarkt',     price: 699, best: true  },
+        { name: 'PcComponentes', price: 749, best: false  }
+      ]
+    },
+    {
+      name: 'PlayStation 5 Slim',
+      stores: [
+        { name: 'Amazon',         price: 419, best: true  },
+        { name: 'MediaMarkt',     price: 449, best: false },
+        { name: 'PcComponentes', price: 459, best: false  }
+      ]
+    },
+    {
+      name: 'AirPods Pro 2',
+      stores: [
+        { name: 'Amazon',         price: 199, best: true  },
+        { name: 'MediaMarkt',     price: 249, best: false },
+        { name: 'PcComponentes', price: 229, best: false  }
+      ]
+    }
+  ];
+
+  let widgetIdx = 0;
+
+  function buildStoreHTML(stores) {
+    return stores.map(s => `
+      <div class="store-row ${s.best ? 'best' : ''}">
+        <span class="store-lbl">${s.name}</span>
+        <div class="store-right">
+          <span class="store-price">€${s.price}</span>
+          ${s.best ? '<span class="badge badge-green" style="padding:3px 10px;font-size:11px;">Mejor oferta</span>' : ''}
+        </div>
+      </div>`
+    ).join('');
+  }
+
+  function renderWidget(idx) {
+    const p = PRODUCTS[idx];
+    document.getElementById('w-prod').textContent   = p.name;
+    document.getElementById('w-stores').innerHTML   = buildStoreHTML(p.stores);
+  }
+
+  renderWidget(0);
+
+  setInterval(() => {
+    const prod   = document.getElementById('w-prod');
+    const stores = document.getElementById('w-stores');
+    prod.style.opacity = stores.style.opacity = '0';
+    prod.style.transition = stores.style.transition = 'opacity .35s';
+    setTimeout(() => {
+      widgetIdx = (widgetIdx + 1) % PRODUCTS.length;
+      renderWidget(widgetIdx);
+      prod.style.opacity = stores.style.opacity = '1';
+    }, 350);
+  }, 4500);
+
+  /* ============================================
+     TICKER
+  ============================================ */
+  const TICKERS = [
+    { name: 'AirPods Pro 2',          drop: '−€50',  pct: '−20%' },
+    { name: 'Xiaomi 14T Pro',          drop: '−€80',  pct: '−16%' },
+    { name: 'iPad Air M2 11"',         drop: '−€120', pct: '−18%' },
+    { name: 'RTX 4070 Super',          drop: '−€60',  pct: '−9%'  },
+    { name: 'LG OLED C4 55"',          drop: '−€200', pct: '−22%' },
+    { name: 'Dyson V15 Detect',        drop: '−€90',  pct: '−17%' },
+    { name: 'Nintendo Switch 2',       drop: '−€30',  pct: '−8%'  },
+    { name: 'Samsung Galaxy S25 Ultra',drop: '−€150', pct: '−13%' }
+  ];
+
+  const double = [...TICKERS, ...TICKERS];
+  document.getElementById('ticker').innerHTML = double.map(t =>
+    `<div class="ticker-item">📦 ${t.name} <span class="drop">${t.drop} (${t.pct})</span></div>`
+  ).join('');
+
+  /* ============================================
+     PRICE CHART SVG
+  ============================================ */
+  (function buildChart() {
+    const raw = [549, 549, 535, 549, 515, 529, 505, 495, 519, 505,
+                 485, 465, 479, 455, 445, 435, 449, 425, 419, 419];
+    const W = 900, H = 195, PAD = 12;
+    const minV = Math.min(...raw), maxV = Math.max(...raw);
+
+    const pts = raw.map((v, i) => {
+      const x = PAD + (i / (raw.length - 1)) * (W - PAD * 2);
+      const y = PAD + ((maxV - v) / (maxV - minV)) * (H - PAD * 2);
+      return [x, y];
+    });
+
+    const linePath = 'M ' + pts.map(p => p.join(' ')).join(' L ');
+    const last     = pts[pts.length - 1];
+    const areaPath = linePath + ` L ${last[0]} ${H + 4} L ${pts[0][0]} ${H + 4} Z`;
+
+    document.getElementById('chart-area').setAttribute('d', areaPath);
+    document.getElementById('chart-line').setAttribute('d', linePath);
+    document.getElementById('end-dot').setAttribute('cx', last[0]);
+    document.getElementById('end-dot').setAttribute('cy', last[1]);
+    document.getElementById('end-ring').setAttribute('cx', last[0]);
+    document.getElementById('end-ring').setAttribute('cy', last[1]);
+
+    /* Position tooltip above end dot */
+    const tip = document.getElementById('chart-tip');
+    tip.style.left = ((last[0] / W) * 100 - 7) + '%';
+    tip.style.top  = Math.max(2, (last[1] / H) * 100 - 20) + '%';
+
+    /* Animate stroke-dashoffset on scroll into view */
+    const line = document.getElementById('chart-line');
+    const len  = line.getTotalLength();
+    line.style.strokeDasharray  = len;
+    line.style.strokeDashoffset = len;
+    line.style.transition = 'stroke-dashoffset 2.6s cubic-bezier(.4,0,.2,1)';
+
+    new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        line.style.strokeDashoffset = 0;
+      }
+    }, { threshold: 0.25 }).observe(document.getElementById('chart-wrap'));
+  })();
+
+  /* ============================================
+     COUNTUP
+  ============================================ */
+  function countUp(el) {
+    const to  = parseFloat(el.dataset.to);
+    const dec = parseInt(el.dataset.dec  || 0);
+    const suf = el.dataset.suf || '';
+    const dur = 2000;
+    const t0  = performance.now();
+
+    (function tick(now) {
+      const p = Math.min((now - t0) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = (to * e).toFixed(dec) + suf;
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  /* ============================================
+     INTERSECTION OBSERVERS
+  ============================================ */
+  /* Scroll reveal */
+  new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) en.target.classList.add('visible');
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -50px 0px' })
+    .observe.bind(
+      new IntersectionObserver(entries => {
+        entries.forEach(en => {
+          if (en.isIntersecting) en.target.classList.add('visible');
+        });
+      }, { threshold: 0.08, rootMargin: '0px 0px -50px 0px' })
+    );
+
+  /* Simpler approach — one observer for reveals */
+  const revObs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        en.target.classList.add('visible');
+        revObs.unobserve(en.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -48px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => revObs.observe(el));
+
+  /* CountUp observer */
+  const cuObs = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        countUp(en.target);
+        cuObs.unobserve(en.target);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  document.querySelectorAll('.cu').forEach(el => cuObs.observe(el));
+
+  /* Connector line animation */
+  const connObs = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) {
+      document.getElementById('connector-line').classList.add('animate');
+      connObs.disconnect();
+    }
+  }, { threshold: 0.3 });
+
+  const connWrap = document.getElementById('connector-wrap');
+  if (connWrap) connObs.observe(connWrap);
+
+  /* ============================================
+     NAV — darken on scroll
+  ============================================ */
+  const nav = document.getElementById('main-nav');
+  window.addEventListener('scroll', () => {
+    nav.style.background = window.scrollY > 60
+      ? 'rgba(2,8,23,.98)'
+      : 'rgba(2,8,23,.8)';
+  }, { passive: true });
+
+  /* ============================================
+     EMAIL FORM
+  ============================================ */
+  function handleSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('cta-btn');
+    const inp = document.getElementById('cta-email');
+    btn.textContent      = '✓ ¡Registrado!';
+    btn.style.background = 'var(--color-green)';
+    inp.value            = '';
+    setTimeout(() => {
+      btn.textContent      = 'Empezar gratis →';
+      btn.style.background = '';
+    }, 3200);
+  }
+</script>
+
+</body>
+</html>
