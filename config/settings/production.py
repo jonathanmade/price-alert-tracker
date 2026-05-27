@@ -24,7 +24,7 @@ STORAGES = {
 
 ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
-    default=[".railway.app", "api.pricearadar.com"]
+    default=[".railway.app", "app.pricearadar.com"]
 )
 
 # HTTPS / cookies seguras
