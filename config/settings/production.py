@@ -5,8 +5,6 @@ env = environ.Env()
 
 DEBUG = False
 
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
-
 # Static files — whitenoise serves them directly from Gunicorn (no nginx needed for static)
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -26,6 +24,9 @@ ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
     default=[".railway.app", "app.pricearadar.com"]
 )
+
+# Railway termina SSL en el proxy — Django debe confiar en el header X-Forwarded-Proto
+SECURE_PROXY_SSL_HEADER    = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # HTTPS / cookies seguras
 SECURE_SSL_REDIRECT        = True
