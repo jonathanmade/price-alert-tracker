@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import path, include
+from django.views.generic import RedirectView
 
 from apps.alerts.views import check_price_now, scrape_metadata_view, track_outbound_click
 from apps.catalog.sitemaps import CatalogSitemap, ProductSitemap
@@ -25,6 +26,7 @@ _sitemaps = {
 }
 
 urlpatterns = [
+    path("",         RedirectView.as_view(url="/staff/login/", permanent=False)),
     path("admin/",   admin.site.urls),
     path("staff/",   include("apps.staff.urls")),
 
