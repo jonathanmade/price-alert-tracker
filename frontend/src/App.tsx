@@ -13,6 +13,7 @@ import Profile from './pages/settings/Profile'
 import Billing from './pages/settings/Billing'
 import Notifications from './pages/settings/Notifications'
 import Analytics from './pages/Analytics'
+import Terms from './pages/Terms'
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="notifications"  element={<Notifications />} />
           </Route>
         </Route>
+        <Route path="/terminos" element={<Terms />} />
         <Route path="*" element={<Navigate to={session ? '/dashboard' : '/'} />} />
       </Routes>
     </BrowserRouter>
