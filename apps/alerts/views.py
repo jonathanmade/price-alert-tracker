@@ -51,11 +51,12 @@ def check_price_now(request):
     supabase = _get_supabase()
     now = datetime.now(timezone.utc).isoformat()
 
-    # Cargar alerta con producto
+    # Cargar alerta con producto (solo la del usuario autenticado)
     result = (
         supabase.table("alerts")
         .select("*, products(*, scrape_ok_count, scrape_error_count)")
         .eq("id", alert_id)
+        .eq("user_id", payload["sub"])
         .single()
         .execute()
     )
@@ -69,7 +70,7 @@ def check_price_now(request):
     # Cargar perfil por separado (no hay FK directa entre alerts y profiles)
     profile_result = (
         supabase.table("profiles")
-        .select("email, credits")
+        .select("email")
         .eq("id", user_id)
         .single()
         .execute()
@@ -78,10 +79,14 @@ def check_price_now(request):
     if not profile:
         return JsonResponse({"error": "Perfil no encontrado"}, status=404)
 
-    # Verificar créditos
-    credits = profile.get("credits", 0)
-    if credits <= 0:
+    # Descontar crédito de forma atómica (RPC)
+    deduct_result = supabase.rpc("deduct_credit", {"p_user_id": user_id}).execute()
+    remaining = deduct_result.data
+    if remaining is None:
         return JsonResponse({"error": "Sin créditos disponibles", "credits": 0}, status=402)
+    supabase.table("credit_transactions").insert({
+        "user_id": user_id, "amount": -1, "reason": "price_check",
+    }).execute()
 
     # Scraping síncrono
     current_price = scrape_price(product["url"])
@@ -92,15 +97,11 @@ def check_price_now(request):
             "last_checked_at":    now,
             "scrape_error_count": product.get("scrape_error_count", 0) + 1,
         }).eq("id", product["id"]).execute()
+        supabase.rpc("refund_credit", {"p_user_id": user_id}).execute()
+        supabase.table("credit_transactions").insert({
+            "user_id": user_id, "amount": 1, "reason": "price_check_refund",
+        }).execute()
         return JsonResponse({"error": "No se pudo obtener el precio de esta URL"}, status=422)
-
-    # Descontar crédito
-    supabase.table("profiles").update({"credits": credits - 1}).eq("id", user_id).execute()
-    supabase.table("credit_transactions").insert({
-        "user_id": user_id,
-        "amount": -1,
-        "reason": "price_check",
-    }).execute()
 
     # Actualizar precio del producto
     supabase.table("products").update({
@@ -164,7 +165,7 @@ def check_price_now(request):
     return JsonResponse({
         "price": current_price,
         "triggered": triggered,
-        "credits_remaining": credits - 1,
+        "credits_remaining": remaining,
     })
 
 
