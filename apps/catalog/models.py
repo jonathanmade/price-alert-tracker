@@ -38,6 +38,10 @@ class ReferenceProduct(models.Model):
     image_url   = models.URLField(blank=True)
     category    = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL, related_name="products")
     active      = models.BooleanField(default=True)
+    featured    = models.BooleanField(
+        default=False,
+        help_text="Mostrar en el reel de la landing page.",
+    )
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
 

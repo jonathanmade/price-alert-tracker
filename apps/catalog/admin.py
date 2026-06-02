@@ -9,8 +9,9 @@ class ProductURLInline(admin.TabularInline):
 
 @admin.register(ReferenceProduct)
 class ReferenceProductAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "marketplace_count", "active", "created_at"]
-    list_filter = ["active", "category"]
+    list_display  = ["name", "category", "marketplace_count", "featured", "active", "created_at"]
+    list_filter   = ["featured", "active", "category"]
+    list_editable = ["featured", "active"]
     search_fields = ["name", "slug"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [ProductURLInline]

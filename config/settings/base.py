@@ -102,6 +102,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "products.check_all_prices",
         "schedule": 3600,  # cada hora
     },
+    "check-catalog-prices": {
+        "task": "catalog.check_catalog_prices",
+        "schedule": 6 * 3600,  # cada 6 horas
+    },
 }
 
 # CORS — permite llamadas desde el frontend React
