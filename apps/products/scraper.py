@@ -1,8 +1,16 @@
 import re
 import json
+import time
+import logging
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
+
+# Reintentos y backoff
+_MAX_RETRIES = 3
+_BACKOFF_BASE = 2.0  # esperas: 2s, 4s, 8s
 
 AMAZON_DOMAINS = {"amazon.es", "amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr", "amazon.it"}
 
@@ -111,17 +119,32 @@ def _get_domain(url: str) -> str:
 
 
 def _get_soup(url: str) -> BeautifulSoup | None:
-    try:
-        session = requests.Session()
-        session.headers.update(HEADERS)
-        response = session.get(url, timeout=15, allow_redirects=True)
-        response.raise_for_status()
-        text = response.text
-        if "captcha" in text.lower() or "robot check" in text.lower() or "validatecaptcha" in text.lower():
-            return None
-        return BeautifulSoup(text, "html.parser")
-    except requests.RequestException:
-        return None
+    session = requests.Session()
+    session.headers.update(HEADERS)
+
+    for attempt in range(_MAX_RETRIES):
+        try:
+            response = session.get(url, timeout=15, allow_redirects=True)
+            response.raise_for_status()
+            text = response.text
+
+            # Captcha — no tiene sentido reintentar
+            if "captcha" in text.lower() or "robot check" in text.lower() or "validatecaptcha" in text.lower():
+                logger.warning("Captcha detectado en %s (intento %d)", url, attempt + 1)
+                return None
+
+            return BeautifulSoup(text, "html.parser")
+
+        except requests.RequestException as e:
+            wait = _BACKOFF_BASE ** attempt
+            if attempt < _MAX_RETRIES - 1:
+                logger.warning("Error de red en %s (intento %d/%d): %s — reintentando en %.0fs",
+                               url, attempt + 1, _MAX_RETRIES, e, wait)
+                time.sleep(wait)
+            else:
+                logger.error("Scraping fallido tras %d intentos en %s: %s", _MAX_RETRIES, url, e)
+
+    return None
 
 
 def _price_from_json_ld(soup: BeautifulSoup) -> float | None:
@@ -240,10 +263,26 @@ def _get_soup_for(url: str) -> BeautifulSoup | None:
 
 
 def scrape_price(url: str) -> float | None:
-    soup = _get_soup_for(url)
-    if soup is None:
-        return None
-    return _price_from_soup(soup, url)
+    for attempt in range(_MAX_RETRIES):
+        soup = _get_soup_for(url)
+        if soup is None:
+            # Captcha o fallo definitivo — _get_soup ya reintentó internamente
+            return None
+
+        price = _price_from_soup(soup, url)
+        if price is not None:
+            return price
+
+        # HTML cargó pero precio no encontrado — puede ser render incompleto
+        wait = _BACKOFF_BASE ** attempt
+        if attempt < _MAX_RETRIES - 1:
+            logger.warning("Precio no encontrado en %s (intento %d/%d) — reintentando en %.0fs",
+                           url, attempt + 1, _MAX_RETRIES, wait)
+            time.sleep(wait)
+        else:
+            logger.error("No se encontró precio tras %d intentos en %s", _MAX_RETRIES, url)
+
+    return None
 
 
 def scrape_metadata(url: str) -> dict:
