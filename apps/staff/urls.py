@@ -7,6 +7,7 @@ urlpatterns = [
     path("",                        views.DashboardView.as_view(),     name="dashboard"),
     path("login/",                  views.StaffLoginView.as_view(),    name="login"),
     path("logout/",                 views.StaffLogoutView.as_view(),   name="logout"),
+    path("password-reset/",         views.StaffPasswordResetView.as_view(), name="password_reset"),
     # Products
     path("products/",               views.ProductListView.as_view(),   name="product_list"),
     path("products/new/",           views.ProductCreateView.as_view(), name="product_create"),

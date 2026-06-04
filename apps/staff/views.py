@@ -63,6 +63,28 @@ class StaffLogoutView(View):
         return redirect("/staff/login/")
 
 
+class StaffPasswordResetView(View):
+    def get(self, request):
+        return render(request, "staff/password_reset.html")
+
+    def post(self, request):
+        email = request.POST.get("email", "").strip()
+        if not email:
+            return render(request, "staff/password_reset.html", {
+                "error": "Introduce un email válido."
+            })
+        try:
+            sb = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+            sb.auth.reset_password_email(
+                email,
+                options={"redirect_to": "https://app.pricearadar.com/staff/login/"}
+            )
+        except Exception as exc:
+            logger.warning("Password reset failed for %s: %s", email, exc)
+        # Siempre mostramos éxito — no revelar si el email existe
+        return render(request, "staff/password_reset.html", {"success": True})
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 class DashboardView(StaffAccessMixin, View):
