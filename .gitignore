@@ -16,3 +16,7 @@ frontend/.env
 frontend/.env.local
 frontend/.env.production
 frontend/dist/
+
+# Doppler
+.env.*.local
+.doppler-token
