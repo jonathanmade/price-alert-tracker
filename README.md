@@ -283,7 +283,36 @@ npm run dev
 
 ## Variables de entorno
 
-### Backend (`.env`)
+Este proyecto usa **Doppler** como gestor de secretos. No se usa `.env` en local ni en producción.
+
+### Setup inicial (una vez por máquina)
+
+```bash
+doppler login
+cd price-alert-tracker
+doppler setup   # selecciona proyecto: priceradar, config: dev
+```
+
+A partir de ahí, prefija todos los comandos con `doppler run --`:
+
+```bash
+doppler run -- python manage.py runserver
+doppler run -- celery -A config worker -l info
+```
+
+O usa el script de arranque incluido en el repo:
+
+```bash
+# Git Bash / Linux / Mac
+bash dev.sh
+
+# PowerShell (Windows)
+.\dev.ps1
+```
+
+### Referencia de variables
+
+#### Backend
 
 | Variable | Descripción |
 |----------|-------------|
@@ -292,7 +321,7 @@ npm run dev
 | `SUPABASE_URL` | URL del proyecto Supabase |
 | `SUPABASE_ANON_KEY` | Clave pública |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave privada (solo backend) |
-| `SUPABASE_JWT_SECRET` | Referencia; auth usa JWKS (ES256) |
+| `SUPABASE_JWT_SECRET` | Referencia auth JWKS (ES256) |
 | `REDIS_URL` | URL de Redis |
 | `SENDGRID_API_KEY` | API key de SendGrid |
 | `DEFAULT_FROM_EMAIL` | Email remitente |
@@ -302,13 +331,13 @@ npm run dev
 | `TELEGRAM_BOT_NAME` | Username del bot (sin @) |
 | `TELEGRAM_WEBHOOK_SECRET` | Token secreto para validar webhooks |
 
-### Frontend (`frontend/.env`)
+#### Frontend
 
 | Variable | Descripción |
 |----------|-------------|
 | `VITE_SUPABASE_URL` | URL del proyecto Supabase |
 | `VITE_SUPABASE_ANON_KEY` | Clave pública Supabase |
-| `VITE_DJANGO_API_URL` | URL del backend Django (ej: `http://localhost:8000`) |
+| `VITE_DJANGO_API_URL` | URL del backend Django |
 
 ---
 
