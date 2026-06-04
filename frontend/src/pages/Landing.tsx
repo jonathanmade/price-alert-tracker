@@ -241,7 +241,7 @@ export default function Landing() {
               <div className="hero-eyebrow reveal">
                 <span className="badge badge-green">
                   <span className="live-dot"/>
-                  48.000 alertas activas ahora mismo
+                  48.001 alertas activas ahora mismo
                 </span>
               </div>
               <h1 className="hero-title reveal reveal-d1">
