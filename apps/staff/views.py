@@ -75,14 +75,23 @@ class StaffPasswordResetView(View):
             })
         try:
             sb = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+            redirect_base = getattr(settings, "STAFF_BASE_URL", "https://dev.pricearadar.com")
             sb.auth.reset_password_email(
                 email,
-                options={"redirect_to": "https://app.pricearadar.com/staff/login/"}
+                options={"redirect_to": f"{redirect_base}/staff/password-reset/confirm/"}
             )
         except Exception as exc:
             logger.warning("Password reset failed for %s: %s", email, exc)
         # Siempre mostramos éxito — no revelar si el email existe
         return render(request, "staff/password_reset.html", {"success": True})
+
+
+class StaffPasswordResetConfirmView(View):
+    def get(self, request):
+        return render(request, "staff/password_reset_confirm.html", {
+            "supabase_url": settings.SUPABASE_URL,
+            "supabase_anon_key": settings.SUPABASE_ANON_KEY,
+        })
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
