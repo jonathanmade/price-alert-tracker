@@ -58,6 +58,7 @@ export default function Login() {
   const [password, setPassword]             = useState('')
   const [confirm, setConfirm]               = useState('')
   const [isRegister, setIsRegister]         = useState(false)
+  const [isForgot, setIsForgot]             = useState(false)
   const [acceptedTerms, setAcceptedTerms]   = useState(false)
   const [error, setError]                   = useState('')
   const [success, setSuccess]               = useState('')
@@ -79,6 +80,20 @@ export default function Login() {
       setError(error.message)
     } else if (isRegister) {
       setSuccess('¡Cuenta creada! Revisa tu email para confirmarla.')
+    }
+    setLoading(false)
+  }
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(''); setSuccess(''); setLoading(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://app.pricearadar.com/reset-password',
+    })
+    if (error) {
+      setError(error.message)
+    } else {
+      setSuccess('Revisa tu email. Si la cuenta existe, recibirás un enlace en unos minutos.')
     }
     setLoading(false)
   }
@@ -140,6 +155,54 @@ export default function Login() {
             <span className="text-white font-bold" style={{fontFamily:'Sora,sans-serif'}}>Price-A-Radar</span>
           </Link>
 
+          {isForgot ? (
+            <>
+              <h1 className="text-2xl font-bold text-white mb-1" style={{fontFamily:'Sora,sans-serif'}}>
+                Recuperar contraseña
+              </h1>
+              <p className="text-slate-400 text-sm mb-8">
+                <button
+                  type="button"
+                  onClick={() => { setIsForgot(false); setError(''); setSuccess('') }}
+                  className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                >
+                  Volver al login
+                </button>
+              </p>
+
+              {success ? (
+                <p className="text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">{success}</p>
+              ) : (
+                <form onSubmit={handleForgot} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-slate-300">Email</label>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="tu@email.com"
+                      className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    />
+                  </div>
+
+                  {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                    style={{fontFamily:'Sora,sans-serif'}}
+                  >
+                    {loading
+                      ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Cargando...</span>
+                      : 'Enviar enlace de recuperación'}
+                  </button>
+                </form>
+              )}
+            </>
+          ) : (
+            <>
           <h1 className="text-2xl font-bold text-white mb-1" style={{fontFamily:'Sora,sans-serif'}}>
             {isRegister ? 'Crear cuenta' : 'Bienvenido de nuevo'}
           </h1>
@@ -166,6 +229,18 @@ export default function Login() {
             </div>
 
             <PasswordInput label="Contraseña" value={password} onChange={setPassword} />
+
+            {!isRegister && (
+              <div className="text-right -mt-1">
+                <button
+                  type="button"
+                  onClick={() => { setIsForgot(true); setError(''); setSuccess('') }}
+                  className="text-xs text-slate-500 hover:text-indigo-400 transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+            )}
 
             {isRegister && (
               <PasswordInput label="Confirmar contraseña" value={confirm} onChange={setConfirm} />
@@ -215,6 +290,8 @@ export default function Login() {
             </button>
 
           </form>
+            </>
+          )}
         </div>
       </div>
 
