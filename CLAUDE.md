@@ -253,7 +253,7 @@ dev    → Railway dev  + Vercel dev  (dev / app-dev)
 | 3 | Auth completa (reset password) | ✅ Hecho |
 | 4 | Landing dinámica con reel | 🔄 En progreso |
 | 5 | Historial y gráficas catálogo | 🔄 En progreso |
-| 6 | Módulo de usuarios y estadísticas | ⏳ Pendiente |
+| 6 | Módulo de usuarios y estadísticas | 🔄 En progreso |
 | 7 | Afiliación | ⏳ Pendiente |
 | 8 | Cupones | ⏳ Pendiente |
 | 9 | Comparador de precios | ⏳ Pendiente |
