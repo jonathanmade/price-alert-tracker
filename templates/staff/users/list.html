@@ -1,0 +1,165 @@
+{% extends "staff/base.html" %}
+{% block title %}Usuarios{% endblock %}
+{% block nav_users %}text-white bg-indigo-600/20 border border-indigo-500/20{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
+{% block page_subtitle %}Gestión y estadísticas de usuarios registrados{% endblock %}
+
+{% block content %}
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+
+  <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total usuarios</p>
+    <p class="text-3xl font-bold text-gray-900">{{ total_users }}</p>
+    <p class="text-xs text-gray-400 mt-1">registrados</p>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Nuevos (7d)</p>
+    <p class="text-3xl font-bold text-gray-900">{{ new_last_7d }}</p>
+    <p class="text-xs text-gray-400 mt-1">últimos 7 días</p>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Alertas activas</p>
+    <p class="text-3xl font-bold text-indigo-600">{{ active_alerts_total }}</p>
+    <p class="text-xs text-gray-400 mt-1">en total</p>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Créditos consumidos (7d)</p>
+    <p class="text-3xl font-bold text-gray-900">{{ credits_consumed_7d }}</p>
+    <p class="text-xs text-gray-400 mt-1">últimos 7 días</p>
+  </div>
+
+</div>
+
+<div class="grid xl:grid-cols-3 gap-6 mb-6">
+
+  <!-- Tabla de usuarios -->
+  <div class="xl:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-50">
+      <h2 class="text-sm font-semibold text-gray-900">Usuarios registrados</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Mostrando los 50 más recientes</p>
+    </div>
+    {% if profiles %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-50 bg-gray-50/50">
+            <th class="px-6 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Email</th>
+            <th class="px-6 py-2.5 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Créditos</th>
+            <th class="px-6 py-2.5 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Alertas</th>
+            <th class="px-6 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Registrado</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for p in profiles|slice:":50" %}
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-3.5">
+              <div class="flex items-center gap-2.5">
+                <span class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">
+                  {{ p.email|first|upper }}
+                </span>
+                <span class="text-sm text-gray-800 truncate max-w-[200px]">{{ p.email }}</span>
+              </div>
+            </td>
+            <td class="px-6 py-3.5 text-center">
+              <span class="text-sm font-bold text-gray-900">{{ p.credits|default:"0" }}</span>
+            </td>
+            <td class="px-6 py-3.5 text-center">
+              <span class="text-sm font-bold {% if p.alert_count > 0 %}text-indigo-600{% else %}text-gray-400{% endif %}">
+                {{ p.alert_count }}
+              </span>
+            </td>
+            <td class="px-6 py-3.5 text-xs text-gray-400">
+              {{ p.created_at|default:"—"|slice:":10" }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="px-6 py-10 text-center text-sm text-gray-400">
+      Sin usuarios registrados aún.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Top 10 por alertas -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-50">
+      <h2 class="text-sm font-semibold text-gray-900">Top 10 por alertas</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Usuarios con más alertas configuradas</p>
+    </div>
+    <div class="divide-y divide-gray-50">
+      {% for u in top_users %}
+      <div class="px-6 py-3.5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-xs font-bold text-gray-300 w-4 shrink-0">{{ forloop.counter }}</span>
+          <span class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold flex items-center justify-center shrink-0">
+            {{ u.email|first|upper }}
+          </span>
+          <span class="text-sm text-gray-700 truncate">{{ u.email }}</span>
+        </div>
+        <span class="text-sm font-bold text-indigo-600 shrink-0">{{ u.alert_count }}</span>
+      </div>
+      {% empty %}
+      <div class="px-6 py-8 text-center text-sm text-gray-400">Sin datos.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Últimas 20 transacciones de créditos -->
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <div class="px-6 py-4 border-b border-gray-50">
+    <h2 class="text-sm font-semibold text-gray-900">Últimas transacciones de créditos</h2>
+    <p class="text-xs text-gray-400 mt-0.5">Las 20 más recientes</p>
+  </div>
+  {% if transactions %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-50 bg-gray-50/50">
+          <th class="px-6 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Usuario</th>
+          <th class="px-6 py-2.5 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">Cantidad</th>
+          <th class="px-6 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Motivo</th>
+          <th class="px-6 py-2.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Fecha</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for t in transactions %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-6 py-3.5 font-mono text-xs text-gray-500">
+            {{ t.user_id|slice:":8" }}…
+          </td>
+          <td class="px-6 py-3.5 text-center">
+            {% if t.amount >= 0 %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-green-50 text-green-700">
+              +{{ t.amount }}
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-red-50 text-red-600">
+              {{ t.amount }}
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-6 py-3.5 text-gray-600">{{ t.reason|default:"—" }}</td>
+          <td class="px-6 py-3.5 text-xs text-gray-400">{{ t.created_at|default:"—"|slice:":16" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="px-6 py-10 text-center text-sm text-gray-400">
+    Sin transacciones registradas aún.
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

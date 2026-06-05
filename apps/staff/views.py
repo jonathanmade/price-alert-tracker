@@ -491,3 +491,70 @@ class CouponDeleteView(StaffAccessMixin, View):
         coupon.delete()
         messages.success(request, f"Cupón «{code}» eliminado.")
         return redirect("/staff/coupons/")
+
+
+# ── Users ─────────────────────────────────────────────────────────────────────
+
+class UserListView(StaffAccessMixin, View):
+    def get(self, request):
+        try:
+            sb = _supabase()
+            from datetime import datetime, timezone, timedelta
+            now = datetime.now(timezone.utc)
+            days_30_ago = (now - timedelta(days=30)).isoformat()
+            days_7_ago  = (now - timedelta(days=7)).isoformat()
+
+            # Todos los usuarios
+            profiles = sb.table("profiles").select("id, email, credits, created_at").order("created_at", desc=True).execute().data or []
+
+            # Totales
+            total_users  = len(profiles)
+            new_last_7d  = len([p for p in profiles if p.get("created_at", "") >= days_7_ago])
+            new_last_30d = len([p for p in profiles if p.get("created_at", "") >= days_30_ago])
+
+            # Alertas por usuario
+            alerts_data = sb.table("alerts").select("user_id, status").execute().data or []
+            alerts_by_user = {}
+            for a in alerts_data:
+                uid = a.get("user_id")
+                if uid:
+                    alerts_by_user[uid] = alerts_by_user.get(uid, 0) + 1
+
+            active_alerts_total    = len([a for a in alerts_data if a.get("status") == "active"])
+            triggered_alerts_total = len([a for a in alerts_data if a.get("status") == "triggered"])
+
+            # Créditos
+            transactions = sb.table("credit_transactions").select("user_id, amount, reason, created_at").order("created_at", desc=True).limit(100).execute().data or []
+            credits_consumed_7d = sum(abs(t["amount"]) for t in transactions if t.get("amount", 0) < 0 and t.get("created_at", "") >= days_7_ago)
+
+            # Enriquecer profiles con datos de alertas
+            for p in profiles:
+                p["alert_count"] = alerts_by_user.get(p["id"], 0)
+
+            # Usuarios con más alertas
+            top_users = sorted(profiles, key=lambda x: x["alert_count"], reverse=True)[:10]
+
+            # Usuarios nuevos por día (últimos 7 días)
+            from collections import Counter
+            new_by_day = Counter()
+            for p in profiles:
+                created = p.get("created_at", "")
+                if created >= days_7_ago:
+                    day = created[:10]
+                    new_by_day[day] += 1
+
+        except Exception as exc:
+            return _supabase_error_response(request, "UserListView", exc)
+
+        return render(request, "staff/users/list.html", {
+            "profiles":               profiles,
+            "total_users":            total_users,
+            "new_last_7d":            new_last_7d,
+            "new_last_30d":           new_last_30d,
+            "active_alerts_total":    active_alerts_total,
+            "triggered_alerts_total": triggered_alerts_total,
+            "credits_consumed_7d":    credits_consumed_7d,
+            "top_users":              top_users,
+            "new_by_day":             dict(sorted(new_by_day.items())),
+            "transactions":           transactions[:20],
+        })
