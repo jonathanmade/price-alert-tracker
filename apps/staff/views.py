@@ -168,36 +168,42 @@ class ProductCreateView(StaffAccessMixin, View):
         })
 
     def post(self, request):
-        name      = request.POST.get("name", "").strip()
-        slug      = request.POST.get("slug", "").strip() or slugify(name)
-        desc      = request.POST.get("description", "").strip()
-        image_url = request.POST.get("image_url", "").strip()
-        cat_id    = request.POST.get("category") or None
-        active    = request.POST.get("active") == "on"
-        featured  = request.POST.get("featured") == "on"
+        try:
+            name      = request.POST.get("name", "").strip()
+            slug      = request.POST.get("slug", "").strip() or slugify(name)
+            desc      = request.POST.get("description", "").strip()
+            image_url = request.POST.get("image_url", "").strip()
+            cat_id    = request.POST.get("category") or None
+            active    = request.POST.get("active") == "on"
+            featured  = request.POST.get("featured") == "on"
 
-        if not name:
-            messages.error(request, "El nombre es obligatorio.")
-            return redirect("/staff/products/new/")
+            if not name:
+                messages.error(request, "El nombre es obligatorio.")
+                return redirect("/staff/products/new/")
 
-        product = ReferenceProduct.objects.create(
-            name=name, slug=slug, description=desc,
-            image_url=image_url, category_id=cat_id, active=active,
-            featured=featured,
-        )
+            product = ReferenceProduct.objects.create(
+                name=name, slug=slug, description=desc,
+                image_url=image_url, category_id=cat_id, active=active,
+                featured=featured,
+            )
 
-        # URLs por marketplace
-        for mp in Marketplace.objects.filter(active=True):
-            url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
-            aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
-            if url:
-                ProductURL.objects.create(
-                    product=product, marketplace=mp,
-                    url=url, affiliate_url=aff_url,
-                )
+            # URLs por marketplace
+            for mp in Marketplace.objects.filter(active=True):
+                url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
+                aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
+                if url:
+                    ProductURL.objects.create(
+                        product=product, marketplace=mp,
+                        url=url, affiliate_url=aff_url,
+                    )
 
-        messages.success(request, f"Producto «{product.name}» creado correctamente.")
-        return redirect("/staff/products/")
+            messages.success(request, f"Producto «{product.name}» creado correctamente.")
+            return redirect("/staff/products/")
+        except Exception as exc:
+            import traceback
+            logger.error("ERROR en ProductCreateView.post: %s\n%s",
+                         exc, traceback.format_exc())
+            raise
 
 
 class ProductEditView(StaffAccessMixin, View):
