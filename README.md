@@ -284,7 +284,7 @@ pip install -r requirements.txt
 
 ```bash
 doppler login
-doppler setup   # selecciona proyecto: priceradar, config: dev
+doppler setup   # selecciona proyecto: price-a-tracker, config: dev
 ```
 
 ### 3. Migraciones
@@ -328,7 +328,7 @@ Este proyecto usa **Doppler** como gestor de secretos. No se usa `.env` en local
 ```bash
 doppler login
 cd price-alert-tracker
-doppler setup   # selecciona proyecto: priceradar, config: dev
+doppler setup   # selecciona proyecto: price-a-tracker, config: dev
 ```
 
 A partir de ahí, prefija todos los comandos con `doppler run --`:
