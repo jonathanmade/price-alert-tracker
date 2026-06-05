@@ -8,6 +8,20 @@
 
 {% block content %}
 
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-xl font-bold text-gray-900">Usuarios</h1>
+    <p class="text-sm text-gray-500 mt-0.5">{{ total_users }} usuarios registrados</p>
+  </div>
+  <button onclick="openInviteModal()"
+    class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+    </svg>
+    Invitar usuario
+  </button>
+</div>
+
 <!-- KPIs -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -128,5 +142,140 @@
   <p class="text-sm text-gray-400">Sin transacciones.</p>
   {% endif %}
 </div>
+
+<!-- Modal invitación -->
+<div id="inviteModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeInviteModal()"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <button onclick="closeInviteModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+        <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-gray-900">Invitar usuario</h3>
+        <p class="text-xs text-gray-500">Recibirá un email para activar su cuenta</p>
+      </div>
+    </div>
+
+    <div id="inviteError" class="hidden bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-4"></div>
+
+    <form id="inviteForm" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+        <input type="email" id="inviteEmail" required placeholder="usuario@ejemplo.com"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+      </div>
+      <div class="flex items-start gap-3 bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+        <input type="checkbox" id="inviteIsStaff" class="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"/>
+        <div>
+          <label for="inviteIsStaff" class="text-sm font-semibold text-indigo-900 cursor-pointer">
+            Acceso staff
+          </label>
+          <p class="text-xs text-indigo-600 mt-0.5">El usuario podrá acceder al panel de gestión interno.</p>
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeInviteModal()"
+          class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" id="inviteSubmitBtn"
+          class="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+          Enviar invitación
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal éxito -->
+<div id="inviteSuccessModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
+    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+      <svg class="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+    <h3 class="text-lg font-bold text-gray-900 mb-2">¡Invitación enviada!</h3>
+    <p class="text-sm text-gray-500 mb-1">Hemos enviado un email de bienvenida a</p>
+    <p id="invitedEmail" class="text-sm font-semibold text-indigo-600 mb-6"></p>
+    <p class="text-xs text-gray-400 mb-6">El enlace de activación expira en 24 horas.</p>
+    <button onclick="closeSuccessModal()"
+      class="w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+      Perfecto
+    </button>
+  </div>
+</div>
+
+<script>
+function openInviteModal() {
+  document.getElementById('inviteModal').classList.remove('hidden');
+  document.getElementById('inviteModal').classList.add('flex');
+  document.getElementById('inviteEmail').focus();
+  document.getElementById('inviteError').classList.add('hidden');
+  document.getElementById('inviteForm').reset();
+}
+
+function closeInviteModal() {
+  document.getElementById('inviteModal').classList.add('hidden');
+  document.getElementById('inviteModal').classList.remove('flex');
+}
+
+function closeSuccessModal() {
+  document.getElementById('inviteSuccessModal').classList.add('hidden');
+  document.getElementById('inviteSuccessModal').classList.remove('flex');
+}
+
+document.getElementById('inviteForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('inviteSubmitBtn');
+  const errorEl = document.getElementById('inviteError');
+  const email = document.getElementById('inviteEmail').value;
+  const isStaff = document.getElementById('inviteIsStaff').checked;
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  errorEl.classList.add('hidden');
+
+  const formData = new FormData();
+  formData.append('email', email);
+  if (isStaff) formData.append('is_staff', 'on');
+  formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+  try {
+    const resp = await fetch('/staff/users/invite/', { method: 'POST', body: formData });
+    const data = await resp.json();
+    if (data.ok) {
+      closeInviteModal();
+      document.getElementById('invitedEmail').textContent = data.email;
+      document.getElementById('inviteSuccessModal').classList.remove('hidden');
+      document.getElementById('inviteSuccessModal').classList.add('flex');
+    } else {
+      errorEl.textContent = data.error;
+      errorEl.classList.remove('hidden');
+    }
+  } catch {
+    errorEl.textContent = 'Error de conexión. Inténtalo de nuevo.';
+    errorEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar invitación';
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeInviteModal(); closeSuccessModal(); }
+});
+</script>
 
 {% endblock %}
