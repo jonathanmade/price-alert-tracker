@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../api/supabase'
+import PasswordStrength, { validatePassword } from '../components/ui/PasswordStrength'
 
 /* ---- Icons ---- */
 const EyeIcon = ({ open }: { open: boolean }) => open ? (
@@ -63,7 +64,7 @@ export default function ResetPassword() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirm) { setError('Las contraseñas no coinciden.'); return }
-    if (password.length < 8)  { setError('La contraseña debe tener al menos 8 caracteres.'); return }
+    if (!validatePassword(password)) { setError('La contraseña no cumple los requisitos mínimos.'); return }
     setError(''); setLoading(true)
     const { error: updateError } = await supabase.auth.updateUser({ password })
     if (updateError) {
@@ -162,6 +163,7 @@ export default function ResetPassword() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <PasswordInput label="Nueva contraseña" value={password} onChange={setPassword} />
+                <PasswordStrength password={password} />
                 <PasswordInput label="Confirmar contraseña" value={confirm} onChange={setConfirm} />
 
                 {error && (

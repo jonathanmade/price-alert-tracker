@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../api/supabase'
+import PasswordStrength, { validatePassword } from '../components/ui/PasswordStrength'
 
 /* ---- Icons ---- */
 const EyeIcon = ({ open }: { open: boolean }) => open ? (
@@ -69,6 +70,7 @@ export default function Login() {
     setError(''); setSuccess('')
 
     if (isRegister && password !== confirm) { setError('Las contraseñas no coinciden.'); return }
+    if (isRegister && !validatePassword(password)) { setError('La contraseña no cumple los requisitos mínimos.'); return }
     if (isRegister && !acceptedTerms)       { setError('Debes aceptar los términos y condiciones.'); return }
 
     setLoading(true)
@@ -229,6 +231,7 @@ export default function Login() {
             </div>
 
             <PasswordInput label="Contraseña" value={password} onChange={setPassword} />
+            {isRegister && <PasswordStrength password={password} />}
 
             {!isRegister && (
               <div className="text-right -mt-1">
