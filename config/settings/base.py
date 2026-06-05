@@ -79,6 +79,7 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -119,6 +120,9 @@ SUPABASE_URL = env("SUPABASE_URL")
 SUPABASE_ANON_KEY = env("SUPABASE_ANON_KEY")
 SUPABASE_SERVICE_ROLE_KEY = env("SUPABASE_SERVICE_ROLE_KEY")
 SUPABASE_JWT_SECRET = env("SUPABASE_JWT_SECRET")
+
+# Staff panel — base URL for password reset redirect (set STAFF_BASE_URL in Railway)
+STAFF_BASE_URL = env("STAFF_BASE_URL", default="http://localhost:8000")
 
 # Staff panel — emails autorizados (separados por coma en la variable de entorno)
 _staff_emails_raw = env("STAFF_EMAILS", default="")

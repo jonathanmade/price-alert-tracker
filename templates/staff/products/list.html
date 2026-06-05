@@ -98,10 +98,10 @@
           <div class="flex items-center justify-end gap-2">
             <a href="/staff/products/{{ product.pk }}/edit/"
                class="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors">Editar</a>
-            <form method="post" action="/staff/products/{{ product.pk }}/delete/"
-                  onsubmit="return confirm('¿Eliminar «{{ product.name }}»?')">
+            <form method="post" action="/staff/products/{{ product.pk }}/delete/">
               {% csrf_token %}
-              <button type="submit" class="text-xs text-red-400 hover:text-red-600 font-medium transition-colors">
+              <button type="button" onclick="confirmDelete(this.closest('form'))"
+                class="text-xs text-red-400 hover:text-red-600 font-medium transition-colors">
                 Eliminar
               </button>
             </form>

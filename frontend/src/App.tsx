@@ -14,6 +14,7 @@ import Billing from './pages/settings/Billing'
 import Notifications from './pages/settings/Notifications'
 import Analytics from './pages/Analytics'
 import Terms from './pages/Terms'
+import ResetPassword from './pages/ResetPassword'
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -39,6 +40,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={session ? <Navigate to="/dashboard" /> : <Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route element={session ? <AppLayout /> : <Navigate to="/login" />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/history"    element={<History />} />

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% load static %}
+  <link rel="icon" type="image/svg+xml" href="{% static 'staff/img/favicon.svg' %}">
   <title>{% block title %}Panel{% endblock %} · PriceAlert Staff</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -29,6 +31,17 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
         Dashboard
+      </a>
+
+      <a href="/staff/users/"
+         class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors
+                text-gray-400 hover:text-white hover:bg-white/5
+                {% block nav_users %}{% endblock %}">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Usuarios
       </a>
 
       <p class="text-xs font-semibold text-slate-600 uppercase tracking-wider px-3 mt-5 mb-2">Contenido</p>
@@ -134,6 +147,82 @@
     </main>
 
   </div>
+
+
+<!-- Modal de confirmación de eliminación -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">¿Eliminar este elemento?</h3>
+        <p class="text-xs text-gray-500 mt-0.5">Esta acción no se puede deshacer.</p>
+      </div>
+    </div>
+    <div class="flex gap-2 justify-end mt-6">
+      <button type="button" onclick="closeDeleteModal()"
+        class="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+        Cancelar
+      </button>
+      <button type="button" id="deleteConfirmBtn"
+        class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors">
+        Sí, eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loader de carga -->
+<div id="pageLoader" class="fixed inset-0 z-40 hidden items-center justify-center bg-white/80 backdrop-blur-sm">
+  <div class="text-center">
+    <div class="w-10 h-10 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+    <p class="text-sm font-medium text-gray-700">Preparando experiencia personalizada</p>
+    <p class="text-xs text-gray-400 mt-1">Un momento, por favor...</p>
+  </div>
+</div>
+
+<script>
+// Modal de confirmación
+let _pendingDeleteForm = null;
+
+function confirmDelete(form) {
+  _pendingDeleteForm = form;
+  const modal = document.getElementById('deleteModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeDeleteModal() {
+  _pendingDeleteForm = null;
+  const modal = document.getElementById('deleteModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+document.getElementById('deleteConfirmBtn').addEventListener('click', function () {
+  if (_pendingDeleteForm) {
+    _pendingDeleteForm.submit();
+  }
+  closeDeleteModal();
+});
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('deleteModal').addEventListener('click', function (e) {
+  if (e.target === this) closeDeleteModal();
+});
+
+// Loader
+function showLoader() {
+  const loader = document.getElementById('pageLoader');
+  loader.classList.remove('hidden');
+  loader.classList.add('flex');
+}
+</script>
 
 </body>
 </html>

@@ -238,45 +238,83 @@ price-alert-tracker/
 
 ---
 
+## Flujo de trabajo
+
+```
+rama dev  →  push  →  Vercel Preview (dev.pricearadar.com)
+                   →  Railway env dev (Django + Celery, rama dev)
+
+rama main →  push  →  Vercel Production (pricearadar.com)
+                   →  Railway env production (Django + Celery, rama main)
+
+Datos compartidos (dev y prod usan el mismo Supabase y Upstash por ahora):
+  - Base de datos: Supabase (PostgreSQL 17)
+  - Redis:         Upstash
+  - Secretos:      Doppler (proyecto priceradar, configs dev / prd)
+```
+
+El flujo habitual es:
+1. Trabajar en rama `dev` en local
+2. Push a `dev` → deploy automático en `dev.pricearadar.com`
+3. Revisar y probar en `dev.pricearadar.com`
+4. Merge `dev` → `main` → deploy automático en `pricearadar.com`
+
+---
+
 ## Puesta en marcha local
 
 ### Requisitos
 - Python 3.11+
-- Node 18+
-- Redis (vía Docker)
-- Cuenta en Supabase
+- Node 22+
+- Doppler CLI ([doppler.com/docs/cli](https://docs.doppler.com/docs/cli))
+- Cuenta en Supabase (compartida con producción — tener cuidado con los datos)
 
-### Backend
+### 1. Clonar y preparar entorno Python
 
 ```bash
+git clone https://github.com/tu-usuario/price-alert-tracker.git
+cd price-alert-tracker
 python -m venv venv
-venv\Scripts\activate        # Windows
+source venv/Scripts/activate   # Git Bash (Windows)
+# source venv/bin/activate     # Linux / Mac
 pip install -r requirements.txt
-cp .env.example .env         # completar con tus claves
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
 ```
 
-### Worker Celery
+### 2. Configurar Doppler
 
 ```bash
-celery -A config worker -l info
-celery -A config beat -l info
+doppler login
+doppler setup   # selecciona proyecto: price-a-tracker, config: dev
 ```
 
-### Redis (Docker)
+### 3. Migraciones
 
 ```bash
-docker compose up redis -d
+doppler run -- python manage.py migrate
+doppler run -- python manage.py createsuperuser
 ```
 
-### Frontend
+### 4. Arrancar todos los servicios
 
+Opción A — script automático:
 ```bash
-cd frontend
-npm install
-npm run dev
+bash dev.sh          # Git Bash / Linux / Mac
+.\dev.ps1            # PowerShell (Windows)
+```
+
+Opción B — terminales separadas:
+```bash
+# Terminal 1 — Django
+doppler run -- python manage.py runserver
+
+# Terminal 2 — Celery worker
+doppler run -- celery -A config worker --loglevel=info
+
+# Terminal 3 — Celery beat
+doppler run -- celery -A config beat --loglevel=info
+
+# Terminal 4 — Frontend
+cd frontend && npm install && doppler run -- npm run dev
 ```
 
 ---
@@ -290,7 +328,7 @@ Este proyecto usa **Doppler** como gestor de secretos. No se usa `.env` en local
 ```bash
 doppler login
 cd price-alert-tracker
-doppler setup   # selecciona proyecto: priceradar, config: dev
+doppler setup   # selecciona proyecto: price-a-tracker, config: dev
 ```
 
 A partir de ahí, prefija todos los comandos con `doppler run --`:
@@ -357,34 +395,33 @@ Ejecutar en orden en **SQL Editor** del proyecto:
 
 ---
 
-## Deploy en producción (VPS + nginx)
+## Deploy
 
-### Requisitos del servidor
-- Ubuntu 22.04 / Debian 12
-- Python 3.11, Node 18
-- nginx, certbot
-- Redis (`sudo apt install redis-server`)
+### Infraestructura
 
-### 1. Clonar y preparar entorno
+| Capa | Servicio | Rama | Dominio |
+|------|----------|------|---------|
+| Frontend | Vercel | `main` | pricearadar.com |
+| Frontend (dev) | Vercel Preview | `dev` | dev.pricearadar.com |
+| Backend + Celery | Railway (env production) | `main` | — |
+| Backend + Celery (dev) | Railway (env dev) | `dev` | — |
+| Base de datos | Supabase | — | — |
+| Redis | Upstash | — | — |
+| Secretos | Doppler | configs: `dev` / `prd` | — |
 
+### Deploy automático
+
+Cada push a `dev` o `main` despliega automáticamente en Vercel y Railway.
+No hay pasos manuales de deploy.
+
+### Migraciones Django en producción
+
+Ejecutar manualmente desde Railway → servicio web → **Deploy → Run command**:
 ```bash
-git clone https://github.com/tu-usuario/price-alert-tracker.git /var/www/priceradar
-cd /var/www/priceradar
-
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-playwright install chromium          # necesario para scraping Amazon
+python manage.py migrate
 ```
 
-### 2. Variables de entorno
-
-```bash
-cp .env.example .env
-nano .env                            # completar todas las variables
-```
-
-Asegúrate de que `DJANGO_SETTINGS_MODULE=config.settings.production` esté establecido en el entorno o en el comando de arranque.
+### Migraciones Supabase
 
 ### 3. Build del frontend
 

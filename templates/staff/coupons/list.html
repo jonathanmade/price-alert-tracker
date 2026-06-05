@@ -98,10 +98,12 @@
           <div class="flex items-center justify-end gap-3">
             <a href="/staff/coupons/{{ coupon.pk }}/edit/"
                class="text-xs text-gray-400 hover:text-indigo-600 transition-colors">Editar</a>
-            <form method="post" action="/staff/coupons/{{ coupon.pk }}/delete/"
-                  onsubmit="return confirm('¿Eliminar cupón {{ coupon.code }}?')">
+            <form method="post" action="/staff/coupons/{{ coupon.pk }}/delete/">
               {% csrf_token %}
-              <button type="submit" class="text-xs text-red-400 hover:text-red-600 transition-colors">Eliminar</button>
+              <button type="button" onclick="confirmDelete(this.closest('form'))"
+                class="text-xs text-red-400 hover:text-red-600 transition-colors">
+                Eliminar
+              </button>
             </form>
           </div>
         </td>

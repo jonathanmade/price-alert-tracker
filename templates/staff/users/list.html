@@ -1,0 +1,132 @@
+{% extends "staff/base.html" %}
+{% load static %}
+
+{% block title %}Usuarios{% endblock %}
+{% block nav_users %}text-white bg-indigo-600/20 border border-indigo-500/20{% endblock %}
+{% block page_title %}Usuarios{% endblock %}
+{% block page_subtitle %}Gestión y estadísticas de usuarios registrados{% endblock %}
+
+{% block content %}
+
+<!-- KPIs -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Total usuarios</p>
+    <p class="text-3xl font-bold text-gray-900">{{ total_users }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Nuevos 7 días</p>
+    <p class="text-3xl font-bold text-indigo-600">{{ new_last_7d }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Nuevos 30 días</p>
+    <p class="text-3xl font-bold text-gray-900">{{ new_last_30d }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Créditos consumidos 7d</p>
+    <p class="text-3xl font-bold text-gray-900">{{ credits_consumed_7d }}</p>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="grid lg:grid-cols-3 gap-6 mb-6">
+
+  <!-- Tabla usuarios (2/3) -->
+  <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-gray-900">Usuarios registrados</h2>
+      {% if filter_param %}
+      <span class="text-xs bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full px-3 py-1">
+        {% if filter_param == "active_alerts" %}Filtrando: alertas activas{% elif filter_param == "triggered_alerts" %}Filtrando: alertas disparadas{% endif %}
+      </span>
+      {% endif %}
+    </div>
+    {% if profiles %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-100">
+            <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Email</th>
+            <th class="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Créditos</th>
+            <th class="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Alertas</th>
+            <th class="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Registrado</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for p in profiles %}
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="py-2.5 text-gray-700 truncate max-w-[200px]">{{ p.email }}</td>
+            <td class="py-2.5 text-right text-gray-500">{{ p.credits }}</td>
+            <td class="py-2.5 text-right">
+              {% if p.alert_count %}
+              <span class="bg-indigo-50 text-indigo-600 text-xs rounded-full px-2 py-0.5">{{ p.alert_count }}</span>
+              {% else %}
+              <span class="text-gray-300">—</span>
+              {% endif %}
+            </td>
+            <td class="py-2.5 text-right text-gray-400 text-xs">{{ p.created_at|slice:":10" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 py-8 text-center">Sin usuarios registrados aún.</p>
+    {% endif %}
+  </div>
+
+  <!-- Top 10 por alertas (1/3) -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <h2 class="text-sm font-semibold text-gray-900 mb-4">Top 10 por alertas</h2>
+    {% if top_users %}
+    <ul class="space-y-2">
+      {% for u in top_users %}
+      {% if u.alert_count %}
+      <li class="flex items-center justify-between gap-2">
+        <span class="text-xs text-gray-600 truncate">{{ u.email|slice:":28" }}</span>
+        <span class="bg-indigo-50 text-indigo-600 text-xs rounded-full px-2 py-0.5 flex-shrink-0">{{ u.alert_count }}</span>
+      </li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-sm text-gray-400">Sin datos.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Transacciones recientes -->
+<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+  <h2 class="text-sm font-semibold text-gray-900 mb-4">Últimas 20 transacciones de créditos</h2>
+  {% if transactions %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Usuario</th>
+          <th class="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Cantidad</th>
+          <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3 pl-4">Motivo</th>
+          <th class="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Fecha</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for t in transactions %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="py-2.5 text-gray-500 font-mono text-xs">{{ t.user_id|slice:":8" }}...</td>
+          <td class="py-2.5 text-right font-semibold {% if t.amount > 0 %}text-emerald-600{% else %}text-red-500{% endif %}">
+            {% if t.amount > 0 %}+{% endif %}{{ t.amount }}
+          </td>
+          <td class="py-2.5 text-gray-500 pl-4">{{ t.reason }}</td>
+          <td class="py-2.5 text-right text-gray-400 text-xs">{{ t.created_at|slice:":10" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-400">Sin transacciones.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

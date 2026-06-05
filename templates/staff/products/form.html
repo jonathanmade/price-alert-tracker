@@ -59,11 +59,22 @@
           class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ product.description|default:'' }}</textarea>
       </div>
 
-      <div class="flex items-center gap-2.5">
-        <input type="checkbox" name="active" id="active"
-          {% if not product or product.active %}checked{% endif %}
-          class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
-        <label for="active" class="text-sm font-medium text-gray-700">Producto activo</label>
+      <div class="sm:col-span-2 flex flex-wrap items-center gap-6 pt-1">
+        <div class="flex items-center gap-2.5">
+          <input type="checkbox" name="active" id="active"
+            {% if not product or product.active %}checked{% endif %}
+            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
+          <label for="active" class="text-sm font-medium text-gray-700">Producto activo</label>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <input type="checkbox" name="featured" id="featured"
+            {% if product.featured %}checked{% endif %}
+            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
+          <label for="featured" class="text-sm font-medium text-gray-700">
+            Mostrar en landing
+            <span class="ml-1 text-xs text-gray-400">(requiere historial de precios)</span>
+          </label>
+        </div>
       </div>
 
     </div>
@@ -81,21 +92,46 @@
         <div class="grid sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs text-gray-500 mb-1">URL del producto</label>
-            <input type="url" name="mp_url_{{ item.mp.id }}" value="{{ item.url }}"
+            <input type="url" name="mp_url_{{ item.mp.id }}"
+              value="{{ item.url }}"
               placeholder="{{ item.mp.base_url }}/..."
+              maxlength="2000"
+              oninput="validateUrl(this)"
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <p class="url-error text-xs text-red-500 mt-1 hidden">
+              Introduce una URL válida (debe empezar por https://)
+            </p>
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">URL de afiliado</label>
-            <input type="url" name="mp_aff_{{ item.mp.id }}" value="{{ item.affiliate_url }}"
+            <input type="url" name="mp_aff_{{ item.mp.id }}"
+              value="{{ item.affiliate_url }}"
               placeholder="Con tag de afiliado..."
+              maxlength="2000"
+              oninput="validateUrl(this)"
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <p class="url-error text-xs text-red-500 mt-1 hidden">
+              Introduce una URL válida (debe empezar por https://)
+            </p>
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
   </div>
+
+  <script>
+  function validateUrl(input) {
+    const error = input.nextElementSibling;
+    if (input.value && !input.value.startsWith('https://')) {
+      input.classList.add('border-red-400');
+      error.classList.remove('hidden');
+    } else {
+      input.classList.remove('border-red-400');
+      error.classList.add('hidden');
+    }
+  }
+  </script>
 
   <!-- Actions -->
   <div class="flex items-center gap-3">

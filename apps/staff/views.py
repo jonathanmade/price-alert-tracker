@@ -63,6 +63,37 @@ class StaffLogoutView(View):
         return redirect("/staff/login/")
 
 
+class StaffPasswordResetView(View):
+    def get(self, request):
+        return render(request, "staff/password_reset.html")
+
+    def post(self, request):
+        email = request.POST.get("email", "").strip()
+        if not email:
+            return render(request, "staff/password_reset.html", {
+                "error": "Introduce un email válido."
+            })
+        try:
+            sb = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+            redirect_base = getattr(settings, "STAFF_BASE_URL", "https://dev.pricearadar.com")
+            sb.auth.reset_password_email(
+                email,
+                options={"redirect_to": f"{redirect_base}/staff/password-reset/confirm/"}
+            )
+        except Exception as exc:
+            logger.warning("Password reset failed for %s: %s", email, exc)
+        # Siempre mostramos éxito — no revelar si el email existe
+        return render(request, "staff/password_reset.html", {"success": True})
+
+
+class StaffPasswordResetConfirmView(View):
+    def get(self, request):
+        return render(request, "staff/password_reset_confirm.html", {
+            "supabase_url": settings.SUPABASE_URL,
+            "supabase_anon_key": settings.SUPABASE_ANON_KEY,
+        })
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 class DashboardView(StaffAccessMixin, View):
@@ -87,14 +118,17 @@ class DashboardView(StaffAccessMixin, View):
         ref_products = ReferenceProduct.objects.count()
 
         modules = [
-            {"num": "1", "label": "Roles y permisos",    "done": True},
-            {"num": "2", "label": "Panel admin",          "done": True},
-            {"num": "3", "label": "Afiliación",           "done": False},
-            {"num": "4", "label": "Comparador",           "done": False},
-            {"num": "5", "label": "SEO programático",     "done": False},
-            {"num": "6", "label": "Historial y gráficas", "done": True},
-            {"num": "7", "label": "Cupones",              "done": False},
-            {"num": "8", "label": "Telegram",             "done": False},
+            {"num": "1",  "label": "Roles y permisos",                "done": True,  "in_progress": False},
+            {"num": "2",  "label": "Panel admin + Productos",          "done": True,  "in_progress": False},
+            {"num": "3",  "label": "Auth completa (reset password)",   "done": True,  "in_progress": False},
+            {"num": "4",  "label": "Landing dinámica con reel",        "done": False, "in_progress": True},
+            {"num": "5",  "label": "Historial y gráficas catálogo",    "done": False, "in_progress": True},
+            {"num": "6",  "label": "Módulo de usuarios y estadísticas","done": False, "in_progress": True},
+            {"num": "7",  "label": "Afiliación",                       "done": False, "in_progress": False},
+            {"num": "8",  "label": "Cupones",                          "done": False, "in_progress": False},
+            {"num": "9",  "label": "Comparador de precios",            "done": False, "in_progress": False},
+            {"num": "10", "label": "SEO programático",                 "done": False, "in_progress": False},
+            {"num": "11", "label": "Telegram",                         "done": False, "in_progress": False},
         ]
 
         return render(request, "staff/dashboard.html", {
@@ -137,34 +171,50 @@ class ProductCreateView(StaffAccessMixin, View):
         })
 
     def post(self, request):
-        name      = request.POST.get("name", "").strip()
-        slug      = request.POST.get("slug", "").strip() or slugify(name)
-        desc      = request.POST.get("description", "").strip()
-        image_url = request.POST.get("image_url", "").strip()
-        cat_id    = request.POST.get("category") or None
-        active    = request.POST.get("active") == "on"
+        try:
+            name      = request.POST.get("name", "").strip()
+            slug      = request.POST.get("slug", "").strip() or slugify(name)
+            desc      = request.POST.get("description", "").strip()
+            image_url = request.POST.get("image_url", "").strip()
+            cat_id    = request.POST.get("category") or None
+            active    = request.POST.get("active") == "on"
+            featured  = request.POST.get("featured") == "on"
 
-        if not name:
-            messages.error(request, "El nombre es obligatorio.")
-            return redirect("/staff/products/new/")
+            if not name:
+                messages.error(request, "El nombre es obligatorio.")
+                return redirect("/staff/products/new/")
 
-        product = ReferenceProduct.objects.create(
-            name=name, slug=slug, description=desc,
-            image_url=image_url, category_id=cat_id, active=active,
-        )
+            product = ReferenceProduct.objects.create(
+                name=name, slug=slug, description=desc,
+                image_url=image_url, category_id=cat_id, active=active,
+                featured=featured,
+            )
 
-        # URLs por marketplace
-        for mp in Marketplace.objects.filter(active=True):
-            url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
-            aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
-            if url:
-                ProductURL.objects.create(
-                    product=product, marketplace=mp,
-                    url=url, affiliate_url=aff_url,
-                )
+            # URLs por marketplace
+            for mp in Marketplace.objects.filter(active=True):
+                url = request.POST.get(f"mp_url_{mp.id}", "").strip()
+                if url and len(url) > 2000:
+                    messages.error(request, f"La URL de {mp.name} es demasiado larga.")
+                    return redirect(request.path)
+                if url and not url.startswith("https://"):
+                    messages.error(request, f"La URL de {mp.name} debe empezar por https://")
+                    return redirect(request.path)
+            for mp in Marketplace.objects.filter(active=True):
+                url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
+                aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
+                if url:
+                    ProductURL.objects.create(
+                        product=product, marketplace=mp,
+                        url=url, affiliate_url=aff_url,
+                    )
 
-        messages.success(request, f"Producto «{product.name}» creado correctamente.")
-        return redirect("/staff/products/")
+            messages.success(request, f"Producto «{product.name}» creado correctamente.")
+            return redirect("/staff/products/")
+        except Exception as exc:
+            import traceback
+            logger.error("ERROR en ProductCreateView.post: %s\n%s",
+                         exc, traceback.format_exc())
+            raise
 
 
 class ProductEditView(StaffAccessMixin, View):
@@ -193,8 +243,17 @@ class ProductEditView(StaffAccessMixin, View):
         product.image_url = request.POST.get("image_url", "").strip()
         product.category_id = request.POST.get("category") or None
         product.active    = request.POST.get("active") == "on"
+        product.featured  = request.POST.get("featured") == "on"
         product.save()
 
+        for mp in Marketplace.objects.filter(active=True):
+            url = request.POST.get(f"mp_url_{mp.id}", "").strip()
+            if url and len(url) > 2000:
+                messages.error(request, f"La URL de {mp.name} es demasiado larga.")
+                return redirect(request.path)
+            if url and not url.startswith("https://"):
+                messages.error(request, f"La URL de {mp.name} debe empezar por https://")
+                return redirect(request.path)
         for mp in Marketplace.objects.filter(active=True):
             url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
             aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
@@ -432,3 +491,52 @@ class CouponDeleteView(StaffAccessMixin, View):
         coupon.delete()
         messages.success(request, f"Cupón «{code}» eliminado.")
         return redirect("/staff/coupons/")
+
+
+# ── Users ─────────────────────────────────────────────────────────────────────
+
+class UserListView(StaffAccessMixin, View):
+    def get(self, request):
+        try:
+            sb = _supabase()
+            from datetime import datetime, timezone, timedelta
+            from collections import Counter
+            now = datetime.now(timezone.utc)
+            days_7_ago  = (now - timedelta(days=7)).isoformat()
+            days_30_ago = (now - timedelta(days=30)).isoformat()
+
+            profiles = sb.table("profiles").select("id, email, credits, created_at").order("created_at", desc=True).execute().data or []
+            total_users  = len(profiles)
+            new_last_7d  = len([p for p in profiles if p.get("created_at", "") >= days_7_ago])
+            new_last_30d = len([p for p in profiles if p.get("created_at", "") >= days_30_ago])
+
+            alerts_data = sb.table("alerts").select("user_id, status").execute().data or []
+            alerts_by_user = Counter(a["user_id"] for a in alerts_data if a.get("user_id"))
+            active_alerts_total    = len([a for a in alerts_data if a.get("status") == "active"])
+            triggered_alerts_total = len([a for a in alerts_data if a.get("status") == "triggered"])
+
+            transactions = sb.table("credit_transactions").select("user_id, amount, reason, created_at").order("created_at", desc=True).limit(100).execute().data or []
+            credits_consumed_7d = sum(abs(t["amount"]) for t in transactions if t.get("amount", 0) < 0 and t.get("created_at", "") >= days_7_ago)
+
+            for p in profiles:
+                p["alert_count"] = alerts_by_user.get(p["id"], 0)
+
+            top_users = sorted(profiles, key=lambda x: x["alert_count"], reverse=True)[:10]
+
+        except Exception as exc:
+            return _supabase_error_response(request, "UserListView", exc)
+
+        filter_param = request.GET.get("filter", "")
+
+        return render(request, "staff/users/list.html", {
+            "profiles":               profiles[:50],
+            "total_users":            total_users,
+            "new_last_7d":            new_last_7d,
+            "new_last_30d":           new_last_30d,
+            "active_alerts_total":    active_alerts_total,
+            "triggered_alerts_total": triggered_alerts_total,
+            "credits_consumed_7d":    int(credits_consumed_7d),
+            "top_users":              top_users,
+            "transactions":           transactions[:20],
+            "filter_param":           filter_param,
+        })

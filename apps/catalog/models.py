@@ -71,8 +71,8 @@ class ReferenceProduct(models.Model):
 class ProductURL(models.Model):
     product        = models.ForeignKey(ReferenceProduct, on_delete=models.CASCADE, related_name="urls")
     marketplace    = models.ForeignKey(Marketplace, on_delete=models.CASCADE)
-    url            = models.URLField()
-    affiliate_url  = models.URLField(blank=True)
+    url            = models.URLField(max_length=2000)
+    affiliate_url  = models.URLField(max_length=2000, blank=True)
     current_price  = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     last_checked   = models.DateTimeField(null=True, blank=True)
     active         = models.BooleanField(default=True)
