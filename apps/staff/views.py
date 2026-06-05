@@ -123,7 +123,7 @@ class DashboardView(StaffAccessMixin, View):
             {"num": "3",  "label": "Auth completa (reset password)",   "done": True,  "in_progress": False},
             {"num": "4",  "label": "Landing dinámica con reel",        "done": False, "in_progress": True},
             {"num": "5",  "label": "Historial y gráficas catálogo",    "done": False, "in_progress": True},
-            {"num": "6",  "label": "Módulo de usuarios y estadísticas","done": False, "in_progress": False},
+            {"num": "6",  "label": "Módulo de usuarios y estadísticas","done": False, "in_progress": True},
             {"num": "7",  "label": "Afiliación",                       "done": False, "in_progress": False},
             {"num": "8",  "label": "Cupones",                          "done": False, "in_progress": False},
             {"num": "9",  "label": "Comparador de precios",            "done": False, "in_progress": False},
