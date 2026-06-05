@@ -92,21 +92,46 @@
         <div class="grid sm:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs text-gray-500 mb-1">URL del producto</label>
-            <input type="url" name="mp_url_{{ item.mp.id }}" value="{{ item.url }}"
+            <input type="url" name="mp_url_{{ item.mp.id }}"
+              value="{{ item.url }}"
               placeholder="{{ item.mp.base_url }}/..."
+              maxlength="2000"
+              oninput="validateUrl(this)"
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <p class="url-error text-xs text-red-500 mt-1 hidden">
+              Introduce una URL válida (debe empezar por https://)
+            </p>
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1">URL de afiliado</label>
-            <input type="url" name="mp_aff_{{ item.mp.id }}" value="{{ item.affiliate_url }}"
+            <input type="url" name="mp_aff_{{ item.mp.id }}"
+              value="{{ item.affiliate_url }}"
               placeholder="Con tag de afiliado..."
+              maxlength="2000"
+              oninput="validateUrl(this)"
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <p class="url-error text-xs text-red-500 mt-1 hidden">
+              Introduce una URL válida (debe empezar por https://)
+            </p>
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
   </div>
+
+  <script>
+  function validateUrl(input) {
+    const error = input.nextElementSibling;
+    if (input.value && !input.value.startsWith('https://')) {
+      input.classList.add('border-red-400');
+      error.classList.remove('hidden');
+    } else {
+      input.classList.remove('border-red-400');
+      error.classList.add('hidden');
+    }
+  }
+  </script>
 
   <!-- Actions -->
   <div class="flex items-center gap-3">

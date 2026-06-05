@@ -189,6 +189,14 @@ class ProductCreateView(StaffAccessMixin, View):
 
             # URLs por marketplace
             for mp in Marketplace.objects.filter(active=True):
+                url = request.POST.get(f"mp_url_{mp.id}", "").strip()
+                if url and len(url) > 2000:
+                    messages.error(request, f"La URL de {mp.name} es demasiado larga.")
+                    return redirect(request.path)
+                if url and not url.startswith("https://"):
+                    messages.error(request, f"La URL de {mp.name} debe empezar por https://")
+                    return redirect(request.path)
+            for mp in Marketplace.objects.filter(active=True):
                 url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
                 aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
                 if url:
@@ -235,6 +243,14 @@ class ProductEditView(StaffAccessMixin, View):
         product.featured  = request.POST.get("featured") == "on"
         product.save()
 
+        for mp in Marketplace.objects.filter(active=True):
+            url = request.POST.get(f"mp_url_{mp.id}", "").strip()
+            if url and len(url) > 2000:
+                messages.error(request, f"La URL de {mp.name} es demasiado larga.")
+                return redirect(request.path)
+            if url and not url.startswith("https://"):
+                messages.error(request, f"La URL de {mp.name} debe empezar por https://")
+                return redirect(request.path)
         for mp in Marketplace.objects.filter(active=True):
             url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
             aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
