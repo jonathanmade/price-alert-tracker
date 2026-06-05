@@ -17,6 +17,8 @@ urlpatterns = [
     path("products/<int:pk>/delete/", views.ProductDeleteView.as_view(), name="product_delete"),
     # Analytics
     path("analytics/",              views.AnalyticsView.as_view(),     name="analytics"),
+    # Users
+    path("users/",                  views.UserListView.as_view(),      name="user_list"),
     # Coupons
     path("coupons/",                views.CouponListView.as_view(),   name="coupon_list"),
     path("coupons/new/",            views.CouponCreateView.as_view(), name="coupon_create"),
