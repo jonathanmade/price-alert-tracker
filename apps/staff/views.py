@@ -118,14 +118,17 @@ class DashboardView(StaffAccessMixin, View):
         ref_products = ReferenceProduct.objects.count()
 
         modules = [
-            {"num": "1", "label": "Roles y permisos",    "done": True},
-            {"num": "2", "label": "Panel admin",          "done": True},
-            {"num": "3", "label": "Afiliación",           "done": False},
-            {"num": "4", "label": "Comparador",           "done": False},
-            {"num": "5", "label": "SEO programático",     "done": False},
-            {"num": "6", "label": "Historial y gráficas", "done": True},
-            {"num": "7", "label": "Cupones",              "done": False},
-            {"num": "8", "label": "Telegram",             "done": False},
+            {"num": "1",  "label": "Roles y permisos",                "done": True,  "in_progress": False},
+            {"num": "2",  "label": "Panel admin + Productos",          "done": True,  "in_progress": False},
+            {"num": "3",  "label": "Auth completa (reset password)",   "done": True,  "in_progress": False},
+            {"num": "4",  "label": "Landing dinámica con reel",        "done": False, "in_progress": True},
+            {"num": "5",  "label": "Historial y gráficas catálogo",    "done": False, "in_progress": True},
+            {"num": "6",  "label": "Módulo de usuarios y estadísticas","done": False, "in_progress": False},
+            {"num": "7",  "label": "Afiliación",                       "done": False, "in_progress": False},
+            {"num": "8",  "label": "Cupones",                          "done": False, "in_progress": False},
+            {"num": "9",  "label": "Comparador de precios",            "done": False, "in_progress": False},
+            {"num": "10", "label": "SEO programático",                 "done": False, "in_progress": False},
+            {"num": "11", "label": "Telegram",                         "done": False, "in_progress": False},
         ]
 
         return render(request, "staff/dashboard.html", {
