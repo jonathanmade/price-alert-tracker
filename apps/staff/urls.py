@@ -19,6 +19,7 @@ urlpatterns = [
     path("analytics/",              views.AnalyticsView.as_view(),     name="analytics"),
     # Users
     path("users/",                  views.UserListView.as_view(),      name="user_list"),
+    path("users/invite/",           views.InviteUserView.as_view(),    name="user_invite"),
     # Coupons
     path("coupons/",                views.CouponListView.as_view(),   name="coupon_list"),
     path("coupons/new/",            views.CouponCreateView.as_view(), name="coupon_create"),

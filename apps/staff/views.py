@@ -1,6 +1,7 @@
 import logging
 from django.conf import settings
 from django.contrib import messages
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import View
 from django.utils.text import slugify
@@ -540,3 +541,41 @@ class UserListView(StaffAccessMixin, View):
             "transactions":           transactions[:20],
             "filter_param":           filter_param,
         })
+
+
+class InviteUserView(StaffAccessMixin, View):
+    def post(self, request):
+        email    = request.POST.get("email", "").strip().lower()
+        is_staff = request.POST.get("is_staff") == "on"
+
+        if not email or "@" not in email:
+            return JsonResponse({"ok": False, "error": "Email inválido."}, status=400)
+
+        try:
+            sb = _supabase()
+
+            # Invitar usuario via Supabase Admin API
+            resp = sb.auth.admin.invite_user_by_email(
+                email,
+                options={
+                    "data": {"is_staff": is_staff},
+                    "redirect_to": f"{settings.STAFF_BASE_URL}/staff/login/" if is_staff else settings.FRONTEND_URL,
+                }
+            )
+
+            # Si es staff, actualizar app_metadata con is_staff=True
+            if is_staff and hasattr(resp, "user") and resp.user:
+                sb.auth.admin.update_user_by_id(
+                    resp.user.id,
+                    {"app_metadata": {"is_staff": True}}
+                )
+
+            logger.info("Usuario invitado: %s (staff=%s)", email, is_staff)
+            return JsonResponse({"ok": True, "email": email, "is_staff": is_staff})
+
+        except Exception as exc:
+            logger.error("Error invitando usuario %s: %s", email, exc)
+            error_msg = str(exc)
+            if "already registered" in error_msg.lower() or "already been registered" in error_msg.lower():
+                return JsonResponse({"ok": False, "error": "Este email ya está registrado."}, status=409)
+            return JsonResponse({"ok": False, "error": "No se pudo enviar la invitación. Inténtalo de nuevo."}, status=500)
