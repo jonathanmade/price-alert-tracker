@@ -90,7 +90,7 @@ export default function Login() {
     e.preventDefault()
     setError(''); setSuccess(''); setLoading(true)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://app.pricearadar.com/reset-password',
+      redirectTo: `${window.location.origin}/reset-password`,
     })
     if (error) {
       setError(error.message)
