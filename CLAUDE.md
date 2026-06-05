@@ -208,6 +208,20 @@ dev    → Railway dev  + Vercel dev  (dev / app-dev)
 - Todos los templates sin base.html usan Tailwind CDN
 - Los templates que extienden base.html usan `{% load static %}`
 
+### Módulos del staff panel
+
+| Template | Vista | URL | Bloque nav activo |
+|----------|-------|-----|-------------------|
+| `staff/dashboard.html` | `DashboardView` | `/staff/` | `nav_dashboard` |
+| `staff/products/list.html` | `ProductListView` | `/staff/products/` | `nav_products` |
+| `staff/products/form.html` | `ProductCreateView` / `ProductEditView` | `/staff/products/new/` | `nav_products` |
+| `staff/analytics.html` | `AnalyticsView` | `/staff/analytics/` | `nav_analytics` |
+| `staff/coupons/list.html` | `CouponListView` | `/staff/coupons/` | `nav_coupons` |
+| `staff/users/list.html` | `UserListView` | `/staff/users/` | `nav_users` |
+| `staff/login.html` | `StaffLoginView` | `/staff/login/` | — |
+| `staff/password_reset.html` | `StaffPasswordResetView` | `/staff/password-reset/` | — |
+| `staff/password_reset_confirm.html` | `StaffPasswordResetConfirmView` | `/staff/password-reset/confirm/` | — |
+
 ---
 
 ## 🖋️ Frontend React — convenciones
@@ -227,6 +241,24 @@ dev    → Railway dev  + Vercel dev  (dev / app-dev)
 - Remitente: `noreply@pricearadar.com`
 - Emails de auth (reset, confirmación): gestionados por Supabase via SMTP de Resend
 - Emails de alertas de precio: gestionados por Django via SendGrid (apps/alerts/notifications.py)
+
+---
+
+## 🗺️ Hoja de ruta
+
+| # | Módulo | Estado |
+|---|--------|--------|
+| 1 | Roles y permisos | ✅ Hecho |
+| 2 | Panel admin + Productos | ✅ Hecho |
+| 3 | Auth completa (reset password) | ✅ Hecho |
+| 4 | Landing dinámica con reel | 🔄 En progreso |
+| 5 | Historial y gráficas catálogo | 🔄 En progreso |
+| 6 | Módulo de usuarios y estadísticas | ⏳ Pendiente |
+| 7 | Afiliación | ⏳ Pendiente |
+| 8 | Cupones | ⏳ Pendiente |
+| 9 | Comparador de precios | ⏳ Pendiente |
+| 10 | SEO programático | ⏳ Pendiente |
+| 11 | Telegram | ⏳ Pendiente |
 
 ---
 
