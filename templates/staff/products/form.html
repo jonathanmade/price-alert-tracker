@@ -59,11 +59,22 @@
           class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ product.description|default:'' }}</textarea>
       </div>
 
-      <div class="flex items-center gap-2.5">
-        <input type="checkbox" name="active" id="active"
-          {% if not product or product.active %}checked{% endif %}
-          class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
-        <label for="active" class="text-sm font-medium text-gray-700">Producto activo</label>
+      <div class="sm:col-span-2 flex flex-wrap items-center gap-6 pt-1">
+        <div class="flex items-center gap-2.5">
+          <input type="checkbox" name="active" id="active"
+            {% if not product or product.active %}checked{% endif %}
+            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
+          <label for="active" class="text-sm font-medium text-gray-700">Producto activo</label>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <input type="checkbox" name="featured" id="featured"
+            {% if product.featured %}checked{% endif %}
+            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
+          <label for="featured" class="text-sm font-medium text-gray-700">
+            Mostrar en landing
+            <span class="ml-1 text-xs text-gray-400">(requiere historial de precios)</span>
+          </label>
+        </div>
       </div>
 
     </div>

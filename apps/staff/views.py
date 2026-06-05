@@ -174,6 +174,7 @@ class ProductCreateView(StaffAccessMixin, View):
         image_url = request.POST.get("image_url", "").strip()
         cat_id    = request.POST.get("category") or None
         active    = request.POST.get("active") == "on"
+        featured  = request.POST.get("featured") == "on"
 
         if not name:
             messages.error(request, "El nombre es obligatorio.")
@@ -182,6 +183,7 @@ class ProductCreateView(StaffAccessMixin, View):
         product = ReferenceProduct.objects.create(
             name=name, slug=slug, description=desc,
             image_url=image_url, category_id=cat_id, active=active,
+            featured=featured,
         )
 
         # URLs por marketplace
@@ -224,6 +226,7 @@ class ProductEditView(StaffAccessMixin, View):
         product.image_url = request.POST.get("image_url", "").strip()
         product.category_id = request.POST.get("category") or None
         product.active    = request.POST.get("active") == "on"
+        product.featured  = request.POST.get("featured") == "on"
         product.save()
 
         for mp in Marketplace.objects.filter(active=True):
