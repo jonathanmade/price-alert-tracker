@@ -91,7 +91,7 @@ export default function Dashboard() {
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               Precio alcanzado
             </h2>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {triggered.map(alert => (
                 <AlertCard
                   key={alert.id}
@@ -112,7 +112,7 @@ export default function Dashboard() {
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               Activas
             </h2>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {active.map(alert => (
                 <AlertCard
                   key={alert.id}
@@ -133,7 +133,7 @@ export default function Dashboard() {
             <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               Pausadas
             </h2>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {paused.map(alert => (
                 <AlertCard
                   key={alert.id}
