@@ -8,7 +8,7 @@ from django.utils.text import slugify
 from supabase import create_client
 
 from .mixins import StaffAccessMixin, AdminOnlyMixin, is_staff_user
-from apps.catalog.models import ReferenceProduct, ProductURL, Marketplace, Category, AffiliateClick, Coupon
+from apps.catalog.models import ReferenceProduct, ProductURL, Marketplace, Category, AffiliateClick, Coupon, build_amazon_affiliate_url
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +203,8 @@ class ProductCreateView(StaffAccessMixin, View):
             for mp in Marketplace.objects.filter(active=True):
                 url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
                 aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
+                if url and not aff_url and 'amazon' in mp.slug.lower():
+                    aff_url = build_amazon_affiliate_url(url)
                 if url:
                     ProductURL.objects.create(
                         product=product, marketplace=mp,
@@ -258,6 +260,8 @@ class ProductEditView(StaffAccessMixin, View):
         for mp in Marketplace.objects.filter(active=True):
             url     = request.POST.get(f"mp_url_{mp.id}", "").strip()
             aff_url = request.POST.get(f"mp_aff_{mp.id}", "").strip()
+            if url and not aff_url and 'amazon' in mp.slug.lower():
+                aff_url = build_amazon_affiliate_url(url)
             pu, _   = ProductURL.objects.get_or_create(product=product, marketplace=mp)
             pu.url           = url
             pu.affiliate_url = aff_url

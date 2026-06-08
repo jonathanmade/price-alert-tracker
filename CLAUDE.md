@@ -126,6 +126,11 @@ price-alert-tracker/
 | `apps.staff` | Panel interno: auth, dashboard, gestión de catálogo |
 | `apps.users` | Middleware JWT, verificación de tokens Supabase |
 
+### Afiliación Amazon
+- **Affiliate tag**: `pricearadar24-21`
+- **Helper**: `build_amazon_affiliate_url(url, tag)` en `apps/catalog/models.py` — extrae el ASIN del path y construye URL limpia `https://www.amazon.es/dp/ASIN?tag=pricearadar24-21`
+- **Auto-generación**: en `ProductCreateView` y `ProductEditView` del staff panel, si el staff deja `affiliate_url` vacío para Amazon, se genera automáticamente
+
 ---
 
 ## 🗄️ Tablas principales en Supabase
@@ -275,3 +280,6 @@ dev    → Railway dev  + Vercel dev  (dev / app-dev)
 - Dev y prod comparten la misma BD Supabase (separar en el futuro)
 - `catalog_price_history` recién creada — sparklines reales disponibles después del primer scrape del catálogo
 - Email unsubscribe link pendiente en alertas de precio
+- **Amazon scraping bloqueado** por captcha en Railway (IPs de datacenter) — el scraper devuelve None para URLs de Amazon
+- **Pendiente Amazon PA API** — requiere 10 ventas/30 días como Associate para acceso; hasta entonces el precio no se actualiza para alertas de Amazon
+- **Affiliate tag configurado**: `pricearadar24-21` — se auto-aplica en el staff panel al crear/editar productos del catálogo

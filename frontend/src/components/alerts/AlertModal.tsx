@@ -23,6 +23,13 @@ interface ExtraUrl {
   metaStatus: MetaStatus
 }
 
+const isAmazonUrl = (url: string): boolean => {
+  try {
+    const host = new URL(url).hostname.replace('www.', '')
+    return host.startsWith('amazon.') || host === 'amzn.eu' || host === 'amzn.to'
+  } catch { return false }
+}
+
 function domainLabel(url: string): string {
   try {
     const host = new URL(url).hostname.replace('www.', '')
@@ -44,6 +51,7 @@ export default function AlertModal({ onClose, onCreate }: Props) {
   const [metaStatus, setMetaStatus] = useState<MetaStatus>('idle')
   const [meta, setMeta]             = useState<ProductMetadata | null>(null)
   const [extraUrls, setExtraUrls]   = useState<ExtraUrl[]>([])
+  const [amazonWarning, setAmazonWarning] = useState(false)
 
   const fetchMeta = async (rawUrl: string) => {
     try { new URL(rawUrl) } catch { return }
@@ -75,6 +83,7 @@ export default function AlertModal({ onClose, onCreate }: Props) {
     setUrl(v)
     setMetaStatus('idle')
     setMeta(null)
+    setAmazonWarning(isAmazonUrl(v))
   }
 
   const addExtra = () => {
@@ -147,6 +156,20 @@ export default function AlertModal({ onClose, onCreate }: Props) {
             <p className="text-xs text-gray-400 mt-1">
               Detectamos nombre y precio automáticamente al pegar la URL.
             </p>
+            {amazonWarning && (
+              <div className="flex items-start gap-2.5 mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                <div>
+                  <p className="text-xs font-semibold text-amber-700">Amazon — precio en actualización</p>
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    Estamos activando la integración oficial con Amazon. Puedes crear la alerta ahora
+                    y el precio se actualizará automáticamente en cuanto esté disponible.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Primary product preview */}

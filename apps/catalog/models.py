@@ -163,3 +163,28 @@ class AffiliateClick(models.Model):
     @staticmethod
     def hash_ip(ip: str) -> str:
         return hashlib.sha256(ip.encode()).hexdigest() if ip else ""
+
+
+def build_amazon_affiliate_url(url: str, tag: str = "pricearadar24-21") -> str:
+    """
+    Dada una URL de Amazon, devuelve la misma URL con el affiliate tag.
+    Limpia parámetros de tracking y añade ?tag=pricearadar24-21
+    Extrae el ASIN del path y construye URL limpia.
+    """
+    import re
+    from urllib.parse import urlparse, urlencode, urlunparse
+    try:
+        parsed = urlparse(url)
+        # Extraer ASIN del path — viene después de /dp/ o /gp/product/
+        asin_match = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', parsed.path)
+        if asin_match:
+            asin = asin_match.group(1)
+            # URL limpia con solo el tag
+            clean_path = f"/dp/{asin}"
+            clean_url = urlunparse((parsed.scheme, parsed.netloc, clean_path, '', f'tag={tag}', ''))
+            return clean_url
+        # Si no hay ASIN, añade el tag a la URL original
+        params = {'tag': tag}
+        return f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{urlencode(params)}"
+    except Exception:
+        return url
